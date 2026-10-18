@@ -46,3 +46,40 @@ export function makeRecord(overrides, keyPair, keyId = "test-key", mode = "raw")
 
   return record;
 }
+
+// TEST KEY - NOT FOR PRODUCTION. ML-DSA-65 key for hybrid tests.
+export function makeMlDsaKeyPair() {
+  const { publicKey, privateKey } = generateKeyPairSync("ml-dsa-65");
+  return {
+    privateKey,
+    publicPem: publicKey.export({ type: "spki", format: "pem" }),
+  };
+}
+
+// Builds a hybrid record: a legacy Ed25519 signature plus a `signatures` array
+// of { algorithm, keyId, signature } entries signed over the canonical fields
+// plus schemaVersion. `entries` lets a test replace or add entries.
+export function makeHybridRecord(overrides, { ed, ml }, { schemaVersion = 2, entries } = {}) {
+  const record = makeRecord({ schemaVersion, ...overrides }, ed, "ed-key");
+
+  const hybridMessage = canonicalBytes({
+    ...canonicalTrustRecord(record),
+    schemaVersion,
+  });
+
+  const defaults = [
+    {
+      algorithm: "ed25519",
+      keyId: "ed-key",
+      signature: signRaw(null, hybridMessage, ed.privateKey).toString("base64"),
+    },
+    {
+      algorithm: "dilithium3",
+      keyId: "ml-key",
+      signature: signRaw(null, hybridMessage, ml.privateKey).toString("base64"),
+    },
+  ];
+
+  record.signatures = entries ?? defaults;
+  return record;
+}

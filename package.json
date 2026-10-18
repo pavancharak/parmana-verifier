@@ -17,6 +17,6 @@
     "test": "node --test test/verify.test.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }

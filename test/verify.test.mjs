@@ -64,7 +64,7 @@ test("a non-Ed25519 public key is rejected", () => {
   const pem = rsa.publicKey.export({ type: "spki", format: "pem" });
   const result = verifyExecutionTrustRecord(record, { "test-key": pem });
   assert.equal(result.valid, false);
-  assert.match(result.errors.join(" "), /is not an Ed25519 key/);
+  assert.match(result.errors.join(" "), /expected ed25519/);
 });
 
 test("a record over 4096 bytes signed as a commitment verifies", () => {
@@ -108,13 +108,13 @@ test("injecting a __proto__ key into a signed record breaks verification", () =>
   assert.equal(result.valid, false);
 });
 
-test("hybrid signatures present are reported as unchecked", () => {
+test("a record with signatures that is otherwise valid still needs its hybrid entries", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
-  record.signatures = [{ algorithm: "dilithium3", keyId: "pq", signature: "AA==" }];
+  record.signatures = [{ algorithm: "ed25519", keyId: "test-key", signature: record.signature.value }];
   const result = verifyExecutionTrustRecord(record, { "test-key": key.publicPem });
-  assert.equal(result.valid, true);
-  assert.equal(result.hybridSignaturesPresent, true);
+  assert.equal(result.valid, false);
+  assert.equal(result.checks.hybridSignatures, false);
 });
 
 function runCli(args) {
