@@ -1,0 +1,22 @@
+{
+  "name": "parmana-verifier",
+  "version": "0.1.0",
+  "description": "Offline verifier for Parmana Execution Trust Records.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "parmana-verify": "bin/parmana-verify.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "test": "node --test test/verify.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
