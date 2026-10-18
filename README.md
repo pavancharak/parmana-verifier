@@ -45,6 +45,25 @@ A key is used only if all of these hold:
 
 A compromised key is rejected whatever the timestamp, so signatures it made stay void.
 
+## Examples
+
+Run every example with:
+
+```sh
+npm run examples
+```
+
+The examples are in `examples/`, and each one prints what it checks:
+
+- `01-verify-a-proof.mjs`: verify a record and explain each check.
+- `02-tamper-detection.mjs`: change a signed field, then show that recomputing the hash does not help an attacker.
+- `03-pinned-keys-and-windows.mjs`: how pinned fingerprints, validity windows and compromised keys decide what is accepted.
+- `04-hybrid-envelope.mjs`: the Ed25519 and ML-DSA-65 entries of a hybrid record (needs Node 24).
+- `05-build-and-verify-a-record.mjs`: build, hash, sign, pin and verify a record from scratch, with a runtime test key.
+- `06-command-line.mjs`: the command-line exit codes, and fingerprinting a key for pinning.
+
+Each example exits 0 when it behaves as described, so the set runs in CI.
+
 ## What is tested
 
 Run the tests on Node 24:

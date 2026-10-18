@@ -18,3 +18,5 @@ jobs:
           node-version: 24
       - name: Run tests
         run: npm test
+      - name: Run examples
+        run: npm run examples

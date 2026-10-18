@@ -14,7 +14,8 @@
     "NOTICE"
   ],
   "scripts": {
-    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs"
+    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs",
+    "examples": "node examples/run-all.mjs"
   },
   "engines": {
     "node": ">=24"
