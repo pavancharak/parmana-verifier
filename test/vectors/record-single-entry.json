@@ -1,0 +1,35 @@
+{
+  "trustRecordId": "tr_xcheck_1",
+  "businessTransactionId": "bt_xcheck_1",
+  "transaction": {
+    "amount": 250,
+    "currency": "INR",
+    "payee": "vendor-b"
+  },
+  "authorization": {
+    "decision": "allow",
+    "policyVersion": "v1"
+  },
+  "overrides": [],
+  "executions": [
+    {
+      "executionId": "ex_1",
+      "status": "succeeded"
+    }
+  ],
+  "createdAt": "2026-03-01T00:00:00.000Z",
+  "schemaVersion": 2,
+  "trustRecordHash": "219399503b1e0a6b63b4eacc4a086ecb61bea41251947d7dec6abe56fad1618c",
+  "signature": {
+    "algorithm": "ed25519",
+    "keyId": "ed-key",
+    "value": "OH/JAOKWjkrNCahTmCSVwaHf9XFCx6T++XMjm52K08h00oOVxlPxkXZPM9rBKdzGk+qWbZ/qtaWv9sld1lpQCw=="
+  },
+  "signatures": [
+    {
+      "algorithm": "ed25519",
+      "keyId": "ed-key",
+      "signature": "ZuH7erkXw4q1IIQgBfWvZaqtn0NAFWSrNiaR4AgokAx8T7u1QpU2KYR9OvHD732kwRJ/chp7ps4pAUIdf+jBBA=="
+    }
+  ]
+}
