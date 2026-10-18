@@ -50,7 +50,7 @@ A compromised key is rejected whatever the timestamp, so signatures it made stay
 Run the tests on Node 24:
 
 ```sh
-node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs
+npm test
 ```
 
 On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test/helpers.mjs` generates test keys at runtime, labelled "TEST KEY - NOT FOR PRODUCTION", and never writes them to disk. The suite on Node 24.22 runs 44 tests with none skipped.
