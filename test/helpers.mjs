@@ -83,3 +83,24 @@ export function makeHybridRecord(overrides, { ed, ml }, { schemaVersion = 2, ent
   record.signatures = entries ?? defaults;
   return record;
 }
+
+import { keyFingerprint, parseTrustSet } from "../src/trust.mjs";
+
+// Builds a trust entry for a key pair, pinned to its real fingerprint.
+export function trustEntry(keyId, algorithm, keyPair, overrides = {}) {
+  return {
+    keyId,
+    algorithm,
+    publicKeyPem: keyPair.publicPem,
+    fingerprint: keyFingerprint(keyPair.publicPem),
+    validFrom: "2025-01-01T00:00:00.000Z",
+    validUntil: null,
+    compromised: false,
+    ...overrides,
+  };
+}
+
+// Parses trust entries into the Map the verifier takes.
+export function trustSet(...entries) {
+  return parseTrustSet({ keys: entries });
+}

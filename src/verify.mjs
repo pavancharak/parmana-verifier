@@ -2,8 +2,8 @@
 //
 // Checks run on the record alone:
 //   1. trustRecordHash equals the SHA-256 (hex) of the canonical record fields.
-//   2. signature is a valid signature over those canonical bytes, made by the
-//      key named by signature.keyId in publicKeys.
+//   2. signature is a valid signature over those canonical bytes, made by a
+//      trusted key named by signature.keyId (see trust.mjs for the trust rules).
 //   3. If signatures is present, it is a hybrid envelope: at least two entries,
 //      no repeated algorithm, and every entry verifies over the canonical
 //      fields plus schemaVersion (default 2). Any failure makes the record
@@ -27,6 +27,7 @@ import {
   verify as verifySignature,
 } from "node:crypto";
 import { canonicalBytes } from "./canonical.mjs";
+import { fingerprintOfKey } from "./trust.mjs";
 
 const ALGORITHMS = {
   ed25519: { keyType: "ed25519", commitment: true },
@@ -50,7 +51,8 @@ export function canonicalTrustRecord(record) {
   };
 }
 
-export function verifyExecutionTrustRecord(record, publicKeys) {
+// trustKeys is a Map from keyId to a trust entry, as returned by parseTrustSet.
+export function verifyExecutionTrustRecord(record, trustKeys) {
   const errors = [];
 
   if (!isObject(record)) {
@@ -65,7 +67,9 @@ export function verifyExecutionTrustRecord(record, publicKeys) {
     errors.push(`trustRecordHash mismatch: expected ${expectedHash}.`);
   }
 
-  const signatureValid = verifyLegacySignature(record.signature, legacyMessage, publicKeys, errors);
+  const context = { trustKeys, createdAt: record.createdAt };
+
+  const signatureValid = verifyLegacySignature(record.signature, legacyMessage, context, errors);
 
   const checks = { trustRecordHash: hashValid, signature: signatureValid };
 
@@ -74,7 +78,7 @@ export function verifyExecutionTrustRecord(record, publicKeys) {
       ...canonicalTrustRecord(record),
       schemaVersion: record.schemaVersion ?? DEFAULT_SCHEMA_VERSION,
     });
-    checks.hybridSignatures = verifyHybridSignatures(record.signatures, hybridMessage, publicKeys, errors);
+    checks.hybridSignatures = verifyHybridSignatures(record.signatures, hybridMessage, context, errors);
   }
 
   return {
@@ -84,16 +88,16 @@ export function verifyExecutionTrustRecord(record, publicKeys) {
   };
 }
 
-function verifyLegacySignature(signature, message, publicKeys, errors) {
+function verifyLegacySignature(signature, message, context, errors) {
   if (!isSignatureEntry(signature)) {
     errors.push("signature is missing or malformed.");
     return false;
   }
 
-  return verifyEntry(signature, message, publicKeys, errors);
+  return verifyEntry(signature, message, context, errors);
 }
 
-function verifyHybridSignatures(entries, message, publicKeys, errors) {
+function verifyHybridSignatures(entries, message, context, errors) {
   if (!Array.isArray(entries) || !entries.every(isSignatureEntry)) {
     errors.push("malformed signatures: expected an array of entries with string algorithm, keyId and signature.");
     return false;
@@ -115,7 +119,7 @@ function verifyHybridSignatures(entries, message, publicKeys, errors) {
     }
 
     seen.add(entry.algorithm);
-    allValid = verifyEntry(entry, message, publicKeys, errors) && allValid;
+    allValid = verifyEntry(entry, message, context, errors) && allValid;
   }
 
   return allValid;
@@ -123,7 +127,7 @@ function verifyHybridSignatures(entries, message, publicKeys, errors) {
 
 // Accepts { algorithm, keyId, signature } entries. The legacy `signature` field
 // uses `value` for the same three parts, so that is accepted too.
-function verifyEntry(entry, message, publicKeys, errors) {
+function verifyEntry(entry, message, context, errors) {
   const signatureText = entry.signature ?? entry.value;
   const algorithm = ALGORITHMS[entry.algorithm];
 
@@ -132,8 +136,25 @@ function verifyEntry(entry, message, publicKeys, errors) {
     return false;
   }
 
-  if (!Object.prototype.hasOwnProperty.call(publicKeys, entry.keyId)) {
-    errors.push(`no public key supplied for keyId "${entry.keyId}".`);
+  const trusted = context.trustKeys.get(entry.keyId);
+
+  if (!trusted) {
+    errors.push(`no trusted key for keyId "${entry.keyId}".`);
+    return false;
+  }
+
+  if (trusted.algorithm !== entry.algorithm) {
+    errors.push(`keyId "${entry.keyId}" is trusted for ${trusted.algorithm}, not ${entry.algorithm}.`);
+    return false;
+  }
+
+  if (trusted.compromised) {
+    errors.push(`keyId "${entry.keyId}" is marked compromised; its signatures are not accepted.`);
+    return false;
+  }
+
+  if (!withinValidityWindow(trusted, context.createdAt)) {
+    errors.push(`createdAt ${context.createdAt} is outside the validity window of keyId "${entry.keyId}".`);
     return false;
   }
 
@@ -145,9 +166,14 @@ function verifyEntry(entry, message, publicKeys, errors) {
   let publicKey;
 
   try {
-    publicKey = createPublicKey(publicKeys[entry.keyId]);
+    publicKey = createPublicKey(trusted.publicKeyPem);
   } catch {
     errors.push(`public key for keyId "${entry.keyId}" is not a valid PEM key.`);
+    return false;
+  }
+
+  if (fingerprintOfKey(publicKey) !== trusted.fingerprint) {
+    errors.push(`public key for keyId "${entry.keyId}" does not match its pinned fingerprint.`);
     return false;
   }
 
@@ -172,6 +198,20 @@ function verifyEntry(entry, message, publicKeys, errors) {
   }
 
   return true;
+}
+
+function withinValidityWindow(trusted, createdAt) {
+  const at = Date.parse(createdAt);
+
+  if (Number.isNaN(at)) {
+    return false;
+  }
+
+  if (at < Date.parse(trusted.validFrom)) {
+    return false;
+  }
+
+  return trusted.validUntil === null || at < Date.parse(trusted.validUntil);
 }
 
 function commitment(message) {

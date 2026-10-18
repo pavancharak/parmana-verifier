@@ -1,30 +1,52 @@
 #!/usr/bin/env node
-// Usage: parmana-verify <proof.json> <public-keys.json>
+// Usage:
+//   parmana-verify <proof.json> <trust.json>
+//   parmana-verify key-fingerprint <public-key.pem>
 //
-// Exit codes: 0 = valid, 1 = invalid, 2 = usage or read error.
+// verify exits 0 = valid, 1 = invalid, 2 = usage or read error.
+// key-fingerprint prints the "sha256:..." value to pin in a trust file.
 
 import { readFileSync } from "node:fs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
+import { keyFingerprint, parseTrustSet } from "../src/trust.mjs";
 
-const [proofPath, keysPath] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const USAGE = "usage: parmana-verify <proof.json> <trust.json>\n       parmana-verify key-fingerprint <public-key.pem>";
 
-if (!proofPath || !keysPath) {
-  console.error("usage: parmana-verify <proof.json> <public-keys.json>");
+if (args[0] === "key-fingerprint") {
+  if (args.length !== 2) {
+    console.error(USAGE);
+    process.exit(2);
+  }
+
+  try {
+    console.log(keyFingerprint(readFileSync(args[1], "utf8")));
+    process.exit(0);
+  } catch (error) {
+    console.error(`key error: ${error.message}`);
+    process.exit(2);
+  }
+}
+
+const [proofPath, trustPath] = args;
+
+if (!proofPath || !trustPath || args.length !== 2) {
+  console.error(USAGE);
   process.exit(2);
 }
 
 let proof;
-let publicKeys;
+let trustKeys;
 
 try {
   proof = JSON.parse(readFileSync(proofPath, "utf8"));
-  publicKeys = JSON.parse(readFileSync(keysPath, "utf8"));
+  trustKeys = parseTrustSet(JSON.parse(readFileSync(trustPath, "utf8")));
 } catch (error) {
   console.error(`read error: ${error.message}`);
   process.exit(2);
 }
 
-const result = verifyExecutionTrustRecord(proof, publicKeys);
+const result = verifyExecutionTrustRecord(proof, trustKeys);
 
 console.log(JSON.stringify(result));
 

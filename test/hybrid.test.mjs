@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createPublicKey, generateKeyPairSync, verify as crypto_verify } from "node:crypto";
 import { canonicalBytes } from "../src/canonical.mjs";
 import { canonicalTrustRecord, verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { makeHybridRecord, makeKeyPair, makeMlDsaKeyPair } from "./helpers.mjs";
+import { makeHybridRecord, makeKeyPair, makeMlDsaKeyPair, trustEntry, trustSet } from "./helpers.mjs";
 
 const mlDsaSupported = (() => {
   try {
@@ -18,7 +18,7 @@ const mlDsaSupported = (() => {
 const SKIP = mlDsaSupported ? false : "needs Node 24+ with OpenSSL 3.5+ (ML-DSA-65)";
 
 function keysFor(ed, ml) {
-  return { "ed-key": ed.publicPem, "ml-key": ml.publicPem };
+  return trustSet(trustEntry("ed-key", "ed25519", ed), trustEntry("ml-key", "dilithium3", ml));
 }
 
 test("a hybrid record with both valid signatures verifies", { skip: SKIP }, () => {
@@ -35,7 +35,7 @@ test("a hybrid record is invalid when its ML-DSA signature is wrong", { skip: SK
   const ml = makeMlDsaKeyPair();
   const other = makeMlDsaKeyPair();
   const record = makeHybridRecord({}, { ed, ml });
-  const result = verifyExecutionTrustRecord(record, { "ed-key": ed.publicPem, "ml-key": other.publicPem });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("ed-key", "ed25519", ed), trustEntry("ml-key", "dilithium3", other)));
   assert.equal(result.valid, false);
   assert.equal(result.checks.hybridSignatures, false);
   assert.equal(result.checks.signature, true);
@@ -91,7 +91,7 @@ test("a dilithium3 entry with an Ed25519 key is rejected", { skip: SKIP }, () =>
   });
   const result = verifyExecutionTrustRecord(record, keysFor(ed, ml));
   assert.equal(result.valid, false);
-  assert.match(result.errors.join(" "), /expected ml-dsa-65/);
+  assert.match(result.errors.join(" "), /is trusted for ed25519, not dilithium3/);
 });
 
 test("a hybrid record whose signed fields were altered is invalid", { skip: SKIP }, () => {
