@@ -9,4 +9,4 @@
 - `record-schema-v3.json`: `schemaVersion` changed to 3 after signing. Invalid.
 - `record-single-entry.json`: only one entry in `signatures`. Invalid.
 
-The records were signed with the repository's own signing code, `packages/crypto` at commit `227182b`, so they cross-check this verifier against that code. The repository's offline verifier gives the same results for each record.
+The records were signed with Parmana's own signing code, so they cross-check this verifier against that code. The signing code's offline verifier gives the same results for each record.
