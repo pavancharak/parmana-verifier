@@ -30,9 +30,20 @@ node bin/parmana-verify.mjs key-fingerprint <public-key.pem>
   }
   ```
 
-- `key-fingerprint` prints the `sha256:` value to pin for a PEM key. Publish that value through a channel you trust, then compare it before you write a trust file.
+- `key-fingerprint` prints the `sha256:` value to pin for a PEM key. To pin a key safely, follow the steps in [Pinning a key](#pinning-a-key).
 
-`verify` prints a JSON result and exits with `0` (valid), `1` (invalid, with reasons), or `2` (usage or read error).
+The verify command prints one line of JSON and exits with `0` (valid), `1` (invalid, with reasons), or `2` (usage, missing file, or invalid JSON). The full input and output rules are in [docs/FORMAT.md](docs/FORMAT.md).
+
+On Windows PowerShell, use the same commands with the Windows path form, for example `node bin\parmana-verify.mjs proof.json trust.json`.
+
+The package is not published to npm. Run it from a clone of this repository.
+
+## Pinning a key
+
+1. Get the operator's public key PEM and the `sha256:` fingerprint they published. Get the fingerprint from a source other than the one that gave you the key, such as a signed message or a call to a known number.
+2. Run `node bin/parmana-verify.mjs key-fingerprint public-key.pem` on the PEM you received.
+3. Compare the two fingerprints character by character. If they differ, do not use the key.
+4. Only then add the key to your trust file with that fingerprint.
 
 ## Trust rules
 
