@@ -86,7 +86,23 @@ On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.
 - It does not confirm that the action described by the record was executed.
-- Hybrid verification follows the rules in this repository's `OfflineVerifier.ts`. It has not yet been checked against a record produced by the repository's own signing code.
+- The records in `test/vectors/` were produced by the Parmana signing code and are test material only. They show that the checks agree with that code; they are not an independent specification.
+
+## Versions and documents
+
+This is version 0.2.0. Changes between releases are listed in [CHANGELOG.md](CHANGELOG.md).
+
+- [SECURITY.md](SECURITY.md): how to report a vulnerability privately.
+- [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): the scope for an external security review.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute and the Contributor License Agreement.
+
+## Reporting a vulnerability
+
+Do not open a public issue for a security problem. Report it through GitHub's private vulnerability reporting: open the **Security** tab and choose **Report a vulnerability**. See [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. You accept the Contributor License Agreement by checking the acceptance box in the pull request template. Do not submit code or documents from any other Parmana repository.
 
 ## License
 
