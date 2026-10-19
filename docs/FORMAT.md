@@ -66,6 +66,23 @@ If the record is not a JSON object, the result is `{"valid":false,"errors":["rec
 
 Exit codes: `0` valid, `1` invalid, `2` usage error, missing file, or invalid JSON or trust set.
 
+## Fields not covered by any signature
+
+This is a known limitation of the current format (schema version 2 and the legacy `signature`). Read this section before you rely on a record.
+
+**What is protected.** Only the fields listed in the table above are covered by `trustRecordHash`, by the legacy `signature`, and by the hybrid signatures. The hybrid message also covers `schemaVersion`.
+
+**What is not protected.** Every other top-level field of the record, and any field nested inside an uncovered field, is outside the hash and every signature. The signature fields themselves (`signature`, `signatures`) are not covered either. The verifier reads none of these uncovered fields when it decides validity.
+
+**Consequence.** If a record carries a field outside the covered set, such as a decision, status, or amount field, a party who can edit the file can change that field and the verifier still reports `"valid": true`. The verifier can only detect a change to the covered fields.
+
+**What to do until this is closed.**
+- Do not rely on any uncovered field for a decision. Read decisions only from covered fields.
+- Treat a record as authentic only for the covered fields. Use the verifier's result to say that those fields were signed by a trusted key, not that the whole file is unchanged.
+- Parmana should write decision-relevant data only into the covered fields.
+
+**The planned fix.** Verify the whole record, excluding only the signature fields, under a new schema version. That needs a matching change in Parmana's signing code, and records signed under schema version 2 would still be verified under the current rules. Until that change ships and is documented here, this limitation stands.
+
 ## Hybrid signatures
 
 When `signatures` is present, the verifier requires all of these:

@@ -93,6 +93,7 @@ On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
+- Only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected by the hash and signatures. Any other field in a record can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.
