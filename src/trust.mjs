@@ -24,8 +24,27 @@ export function fingerprintOfKey(publicKey) {
 // Parses a trust-set document into a Map keyId -> entry. Throws an Error with
 // a readable message when the document is malformed.
 export function parseTrustSet(document) {
+  return parseTrustPolicy(document).keys;
+}
+
+// Parses a trust-set document into { keys, hybridRequiredFrom }. keys is the
+// Map that parseTrustSet returns. hybridRequiredFrom is the optional cutover:
+// a record created at or after it must carry a valid hybrid envelope. It is
+// null when the document does not set one. It must be an ISO-8601 UTC
+// timestamp ending in "Z", so that it means the same time everywhere.
+export function parseTrustPolicy(document) {
   if (document === null || typeof document !== "object" || !Array.isArray(document.keys)) {
     throw new Error('trust set must be an object with a "keys" array');
+  }
+
+  let hybridRequiredFrom = null;
+
+  if (document.hybridRequiredFrom !== undefined && document.hybridRequiredFrom !== null) {
+    if (typeof document.hybridRequiredFrom !== "string" || !/Z$/.test(document.hybridRequiredFrom) || Number.isNaN(Date.parse(document.hybridRequiredFrom))) {
+      throw new Error('hybridRequiredFrom must be an ISO-8601 UTC timestamp ending in "Z"');
+    }
+
+    hybridRequiredFrom = document.hybridRequiredFrom;
   }
 
   const trustKeys = new Map();
@@ -81,5 +100,5 @@ export function parseTrustSet(document) {
     });
   }
 
-  return trustKeys;
+  return { keys: trustKeys, hybridRequiredFrom };
 }

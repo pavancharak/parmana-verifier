@@ -5,9 +5,20 @@
 //   2. signature is a valid signature over those canonical bytes, made by a
 //      trusted key named by signature.keyId (see trust.mjs for the trust rules).
 //   3. If signatures is present, it is a hybrid envelope: at least two entries,
-//      no repeated algorithm, and every entry verifies over the canonical
-//      fields plus schemaVersion (default 2). Any failure makes the record
-//      invalid.
+//      no repeated algorithm, and every entry verifies over the message for
+//      its schemaVersion (default 2). Any failure makes the record invalid.
+//      A record with schemaVersion 3 must carry a hybrid envelope.
+//   4. If a cutover is given (options.hybridRequiredFrom, from the trust
+//      file), a record created at or after it must pass check 3.
+//
+// Schema versions:
+//   2  the message is the canonical fields plus schemaVersion.
+//   3  the message is every top-level field except signature, signatures,
+//      schemaVersion, verifications and receipts, plus schemaVersion.
+//      Fields outside the version 2 message, such as updatedAt, are covered.
+//
+// The result's coverage is "full" when a version 3 envelope verifies, and
+// "legacy" otherwise. Records with other schemaVersion values are invalid.
 //
 // Supported algorithms:
 //   ed25519     Ed25519 keys. Messages over 4096 bytes may be signed as a
@@ -37,6 +48,12 @@ const ALGORITHMS = {
 const RAW_MESSAGE_LIMIT_BYTES = 4096;
 const COMMITMENT_PREFIX = Buffer.from("PARMANA-ED25519-LARGE-MESSAGE-V1\0", "utf8");
 const DEFAULT_SCHEMA_VERSION = 2;
+const WHOLE_RECORD_SCHEMA_VERSION = 3;
+const SUPPORTED_SCHEMA_VERSIONS = [2, 3];
+
+// Top-level fields that a version 3 message does not cover. verifications and
+// receipts are attached after signing; receipts carry their own signature.
+const WHOLE_RECORD_EXCLUDED_FIELDS = ["signature", "signatures", "schemaVersion", "verifications", "receipts"];
 
 // The fields covered by trustRecordHash and the legacy signature.
 export function canonicalTrustRecord(record) {
@@ -51,12 +68,25 @@ export function canonicalTrustRecord(record) {
   };
 }
 
+// The message a hybrid envelope of the given schema version signs.
+export function hybridMessage(record, schemaVersion) {
+  if (schemaVersion === WHOLE_RECORD_SCHEMA_VERSION) {
+    const covered = Object.entries(record).filter(([key]) => !WHOLE_RECORD_EXCLUDED_FIELDS.includes(key));
+
+    return canonicalBytes({ ...Object.fromEntries(covered), schemaVersion });
+  }
+
+  return canonicalBytes({ ...canonicalTrustRecord(record), schemaVersion });
+}
+
 // trustKeys is a Map from keyId to a trust entry, as returned by parseTrustSet.
-export function verifyExecutionTrustRecord(record, trustKeys) {
+// options.hybridRequiredFrom is an ISO-8601 UTC timestamp from the trust file
+// (see parseTrustPolicy); records created at or after it need a hybrid envelope.
+export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
   const errors = [];
 
   if (!isObject(record)) {
-    return { valid: false, errors: ["record must be a JSON object"], checks: {} };
+    return { valid: false, coverage: "legacy", errors: ["record must be a JSON object"], checks: {} };
   }
 
   const legacyMessage = canonicalBytes(canonicalTrustRecord(record));
@@ -73,19 +103,43 @@ export function verifyExecutionTrustRecord(record, trustKeys) {
 
   const checks = { trustRecordHash: hashValid, signature: signatureValid };
 
-  if (record.signatures !== undefined && record.signatures !== null) {
-    const hybridMessage = canonicalBytes({
-      ...canonicalTrustRecord(record),
-      schemaVersion: record.schemaVersion ?? DEFAULT_SCHEMA_VERSION,
-    });
-    checks.hybridSignatures = verifyHybridSignatures(record.signatures, hybridMessage, context, errors);
+  const schemaVersion = record.schemaVersion ?? DEFAULT_SCHEMA_VERSION;
+  const hasEnvelope = record.signatures !== undefined && record.signatures !== null;
+
+  if (!SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion)) {
+    errors.push(`unsupported schemaVersion ${String(schemaVersion)}: expected 2 or 3.`);
+    checks.hybridSignatures = false;
+  } else if (hasEnvelope) {
+    checks.hybridSignatures = verifyHybridSignatures(record.signatures, hybridMessage(record, schemaVersion), context, errors);
+  } else if (schemaVersion === WHOLE_RECORD_SCHEMA_VERSION) {
+    errors.push("schemaVersion 3 record has no signatures array: a whole-record signature is required.");
+    checks.hybridSignatures = false;
   }
 
+  const cutoverOk = !isAtOrAfterCutover(record.createdAt, options.hybridRequiredFrom) || checks.hybridSignatures === true;
+
+  if (!cutoverOk) {
+    errors.push(`record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`);
+  }
+
+  const coverage = schemaVersion === WHOLE_RECORD_SCHEMA_VERSION && checks.hybridSignatures === true ? "full" : "legacy";
+
   return {
-    valid: hashValid && signatureValid && (checks.hybridSignatures ?? true),
+    valid: hashValid && signatureValid && (checks.hybridSignatures ?? true) && cutoverOk,
+    coverage,
     errors,
     checks,
   };
+}
+
+function isAtOrAfterCutover(createdAt, hybridRequiredFrom) {
+  if (hybridRequiredFrom === undefined) {
+    return false;
+  }
+
+  const created = Date.parse(createdAt);
+
+  return !Number.isNaN(created) && created >= Date.parse(hybridRequiredFrom);
 }
 
 function verifyLegacySignature(signature, message, context, errors) {

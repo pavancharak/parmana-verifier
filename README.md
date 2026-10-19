@@ -88,12 +88,15 @@ On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test
 - `test/verify.test.mjs` covers the legacy signature and hash: a valid record verifies; changing a signed field fails; a signature from another key fails; an unknown `keyId` fails; an unsupported algorithm fails; a non-Ed25519 key fails; records over 4096 bytes verify when signed as a commitment or raw; a commitment over a small record is rejected; `__proto__` keys are covered by the hash; and the CLI exit codes.
 - `test/hybrid.test.mjs` covers hybrid `signatures`: both entries must verify over the canonical fields plus `schemaVersion`; a single entry, a repeated algorithm, an unknown algorithm, a wrong key type, a wrong `schemaVersion`, changed fields, and malformed entries all fail.
 - `test/vectors.test.mjs` checks the records in `test/vectors/`, which were signed by this repository's own signing code. They are labelled TEST KEY - NOT FOR PRODUCTION, and their results match the repository's offline verifier.
+- `test/whole-record.test.mjs` covers schema version 3: a change to `updatedAt` fails, `verifications` and `receipts` are not covered, a v3 record relabelled as v2 fails, a v3 record with no signatures fails, and the `hybridRequiredFrom` cutover, which is inclusive.
 - `test/trust.test.mjs` covers the trust rules: a PEM that doesn't match its pinned fingerprint fails; `validFrom` is inclusive and `validUntil` exclusive; a compromised key fails inside its window; an algorithm mismatch fails; an unparseable `createdAt` fails; malformed or duplicate trust entries are rejected; and the `key-fingerprint` command.
 
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
-- Only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected by the hash and signatures. Any other field in a record can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
+- For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
+- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check `coverage` is `full` when that matters.
+- A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this.
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.
@@ -102,7 +105,7 @@ On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test
 
 ## Versions and documents
 
-This is version 0.2.0. Changes between releases are listed in [CHANGELOG.md](CHANGELOG.md).
+This is version 0.3.0. Changes between releases are listed in [CHANGELOG.md](CHANGELOG.md).
 
 - [SECURITY.md](SECURITY.md): how to report a vulnerability privately.
 - [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): the scope for an external security review.

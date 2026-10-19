@@ -8,7 +8,7 @@
 
 import { readFileSync } from "node:fs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { keyFingerprint, parseTrustSet } from "../src/trust.mjs";
+import { keyFingerprint, parseTrustPolicy } from "../src/trust.mjs";
 
 const args = process.argv.slice(2);
 const USAGE = "usage: parmana-verify <proof.json> <trust.json>\n       parmana-verify key-fingerprint <public-key.pem>";
@@ -36,17 +36,17 @@ if (!proofPath || !trustPath || args.length !== 2) {
 }
 
 let proof;
-let trustKeys;
+let policy;
 
 try {
   proof = JSON.parse(readFileSync(proofPath, "utf8"));
-  trustKeys = parseTrustSet(JSON.parse(readFileSync(trustPath, "utf8")));
+  policy = parseTrustPolicy(JSON.parse(readFileSync(trustPath, "utf8")));
 } catch (error) {
   console.error(`read error: ${error.message}`);
   process.exit(2);
 }
 
-const result = verifyExecutionTrustRecord(proof, trustKeys);
+const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined });
 
 console.log(JSON.stringify(result));
 

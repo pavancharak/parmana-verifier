@@ -21,10 +21,10 @@ The verifier uses these fields:
 | `trustRecordHash` | Yes | Lowercase hex SHA-256 of the canonical bytes of the signed content above. |
 | `signature` | Yes | One signature entry, described below. |
 | `signatures` | No | Hybrid envelope: an array of signature entries. If present, it must pass the hybrid rules. |
-| `schemaVersion` | No | Used only in the hybrid message. If absent, it is treated as `2`. |
+| `schemaVersion` | No | Selects the hybrid message: `2`, or `3` for a whole-record signature (see [Hybrid signatures](#hybrid-signatures)). If absent, it is treated as `2`. Any other value makes the record invalid. |
 | `createdAt` | Yes | An ISO 8601 timestamp. It must parse, and it decides which trust-set validity window applies. |
 
-Every other field in the record is ignored. It is not covered by `trustRecordHash` or any signature, so the verifier cannot detect a change to it.
+A record with `schemaVersion` `2`, or with no `schemaVersion`, has the coverage described in [Fields not covered by any signature](#fields-not-covered-by-any-signature). A record with `schemaVersion` `3` is covered as described in [Hybrid signatures](#hybrid-signatures).
 
 A signature entry is an object with:
 
@@ -46,6 +46,12 @@ The file is an object with a `keys` array. Each entry has:
 | `validUntil` | No | An ISO 8601 timestamp, or `null`. If omitted or `null`, the window has no end. The window excludes this instant. |
 | `compromised` | No | `true` or `false`. If omitted, it is `false`. |
 
+The file may also set one optional top-level field:
+
+| Field | Required | Rule |
+|---|---|---|
+| `hybridRequiredFrom` | No | An ISO 8601 UTC timestamp ending in `Z`. A record whose `createdAt` is at or after this instant must have a valid hybrid envelope. If omitted or `null`, no record needs one. The file's owner sets it; a record cannot set it for itself. |
+
 A file that breaks any of these rules is rejected as a read error (exit code 2).
 
 ## Result (standard output)
@@ -60,7 +66,8 @@ The command prints one line of JSON:
 - `errors`: a list of plain-text reasons, empty when valid.
 - `checks.trustRecordHash`: whether the hash matched.
 - `checks.signature`: whether the legacy `signature` verified.
-- `checks.hybridSignatures`: present only when `signatures` is present.
+- `checks.hybridSignatures`: present only when `signatures` is present, or when `schemaVersion` is `3` (then it is `false` if there is no `signatures` array).
+- `coverage`: `"full"` when a `schemaVersion` `3` envelope verifies, and `"legacy"` otherwise. A caller that needs the whole record covered must reject `legacy`.
 
 If the record is not a JSON object, the result is `{"valid":false,"errors":["record must be a JSON object"],"checks":{}}`.
 
@@ -68,20 +75,22 @@ Exit codes: `0` valid, `1` invalid, `2` usage error, missing file, or invalid JS
 
 ## Fields not covered by any signature
 
-This is a known limitation of the current format (schema version 2 and the legacy `signature`). Read this section before you rely on a record.
+This limitation applies to records with `schemaVersion` `2`, or with no `schemaVersion`. Schema version 3 closes it for the fields it covers, as described below. Read this section before you rely on a version 2 record.
 
-**What is protected.** Only the fields listed in the table above are covered by `trustRecordHash`, by the legacy `signature`, and by the hybrid signatures. The hybrid message also covers `schemaVersion`.
+**What is protected in a version 2 record.** Only the fields listed in the record table are covered by `trustRecordHash`, by the legacy `signature`, and by the hybrid signatures. The hybrid message also covers `schemaVersion`.
 
-**What is not protected.** Every other top-level field of the record, and any field nested inside an uncovered field, is outside the hash and every signature. The signature fields themselves (`signature`, `signatures`) are not covered either. The verifier reads none of these uncovered fields when it decides validity.
+**What is not protected in a version 2 record.** Every other top-level field of the record, and any field nested inside an uncovered field, is outside the hash and every signature. The signature fields themselves (`signature`, `signatures`) are not covered either. The verifier reads none of these uncovered fields when it decides validity.
 
-**Consequence.** If a record carries a field outside the covered set, such as a decision, status, or amount field, a party who can edit the file can change that field and the verifier still reports `"valid": true`. The verifier can only detect a change to the covered fields.
+**Consequence.** If a version 2 record carries a field outside the covered set, such as a decision, status, or amount field, a party who can edit the file can change that field and the verifier still reports `"valid": true`. The verifier can only detect a change to the covered fields.
 
-**What to do until this is closed.**
+**Schema version 3.** A record with `schemaVersion` `3` is signed over every top-level field except `signature`, `signatures`, `schemaVersion`, `verifications` and `receipts`. A change to any other field, such as `updatedAt`, makes the record invalid. `verifications` are attached after signing and are not covered. `receipts` are covered only by their own signatures. Records of this version report `coverage: "full"`.
+
+**Downgrade of version 2 records.** `schemaVersion` is not covered by the legacy `signature` or by `trustRecordHash`. Someone who can write to stored records could remove `signatures` and set `schemaVersion` to `2`, and the legacy signature would still verify. The verifier cannot tell an original version 2 record from such a stripped one. The trust file's `hybridRequiredFrom` (see [Trust set](#trust-set-trustjson)) closes this for records created at or after the cutover. Records created before the cutover remain open to this downgrade.
+
+**What to do.**
 - Do not rely on any uncovered field for a decision. Read decisions only from covered fields.
-- Treat a record as authentic only for the covered fields. Use the verifier's result to say that those fields were signed by a trusted key, not that the whole file is unchanged.
-- Parmana should write decision-relevant data only into the covered fields.
-
-**The planned fix.** Verify the whole record, excluding only the signature fields, under a new schema version. That needs a matching change in Parmana's signing code, and records signed under schema version 2 would still be verified under the current rules. Until that change ships and is documented here, this limitation stands.
+- Treat a version 2 record as authentic only for the covered fields.
+- Require `coverage: "full"`, or set `hybridRequiredFrom`, for any record whose decision-relevant fields must be protected.
 
 ## Hybrid signatures
 
@@ -89,7 +98,11 @@ When `signatures` is present, the verifier requires all of these:
 
 - At least two entries.
 - No algorithm appears twice.
-- Every entry verifies over the canonical fields listed above, plus `schemaVersion` (default `2`).
+- Every entry verifies over the message for the record's `schemaVersion` (default `2`):
+  - `2`: the canonical fields listed in the record table, plus `schemaVersion`.
+  - `3`: every top-level field except `signature`, `signatures`, `schemaVersion`, `verifications` and `receipts`, plus `schemaVersion`.
+- A record with `schemaVersion` `3` must have a `signatures` array. Without it, the record is invalid.
+- Any other `schemaVersion` is invalid.
 
 Any failure makes the record invalid. The hybrid check and the legacy check are independent, so both must pass for a valid result.
 
@@ -108,3 +121,5 @@ For a signature to be accepted, all of these must hold:
 - The record's `createdAt` is at or after `validFrom` and before `validUntil`, when set.
 - The PEM key's fingerprint equals the pinned `fingerprint`.
 - The PEM key's type matches the algorithm.
+
+A record whose `createdAt` is at or after the trust file's `hybridRequiredFrom` is also invalid unless it has a valid hybrid envelope. The instant itself is included in the requirement.

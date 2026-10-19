@@ -1,6 +1,6 @@
 {
   "name": "parmana-verifier",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Offline verifier for Parmana Execution Trust Records.",
   "license": "Apache-2.0",
   "type": "module",
@@ -14,7 +14,7 @@
     "NOTICE"
   ],
   "scripts": {
-    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs",
+    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs test/whole-record.test.mjs",
     "examples": "node examples/run-all.mjs"
   },
   "engines": {
