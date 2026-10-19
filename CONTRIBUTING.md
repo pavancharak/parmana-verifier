@@ -8,7 +8,7 @@
 
 **Version:** 1.0  
 
-**Effective Date:** 1 Jan 2026
+**Effective Date:** 1 May 2026
 
 ## 1. Definitions
 
