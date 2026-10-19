@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.0] - not yet released
+## [0.3.0] - 2026-10-19
 
 - Verifies schema version 3 records: a hybrid envelope over every field except the signature envelope, `verifications` and `receipts`. A change to a field such as `updatedAt` now fails verification.
 - Adds `coverage` to the result: `full` for a verified version 3 envelope, `legacy` otherwise.
