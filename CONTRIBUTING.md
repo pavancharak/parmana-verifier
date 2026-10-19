@@ -8,7 +8,7 @@
 
 **Version:** 1.0  
 
-**Effective Date:** 1 May 2026
+**Effective Date:** The date on which the Contributor accepts this Agreement
 
 ## 1. Definitions
 
@@ -80,7 +80,7 @@ The Company is not obligated to accept, merge, use, maintain, distribute, or con
 
 **7.1. Contributions on Behalf of an Entity.** If You submit Contributions on behalf of an employer or another legal entity, You represent that You are authorized to bind that entity to this Agreement or that the entity has separately executed a Corporate Contributor License Agreement with the Company.
 
-**7.2. Separate Corporate Agreement.** Where You cannot personally grant the required rights because those rights belong to an employer or another legal entity, the relevant entity must execute a Corporate Contributor License Agreement or provide other written authorization acceptable to the Company before the affected Contribution is accepted.
+**7.2. Separate Corporate Agreement.** Where You cannot personally grant the required rights because those rights belong to an employer or another legal entity, the relevant entity must execute a Corporate Contributor License Agreement or provide other written authorization acceptable to the Company before the affected Contribution is accepted. Companies must contact the maintainers before submitting Contributions on their behalf; no Corporate Contributor License Agreement is available through this repository alone.
 
 **7.3. No Unauthorized Commitments.** You must not represent that an employer or other entity has authorized a Contribution unless You have a reasonable basis for that representation.
 
@@ -104,7 +104,7 @@ Subject to applicable law, the courts of competent jurisdiction in New Delhi, In
 
 ## 11. Acceptance and Electronic Records
 
-**11.1. Acceptance.** You accept this Agreement by signing it electronically or physically, or by completing an expressly designated electronic acceptance process maintained by the Company before submitting a Contribution.
+**11.1. Acceptance.** You accept this Agreement by signing it electronically or physically, or by checking the acceptance box in the pull request template before submitting a Contribution. The pull request records the account that accepted and the time of acceptance.
 
 **11.2. Recorded Acceptance.** The Company may maintain an electronic record of Your acceptance, including Your identity or account identifier, the applicable Agreement version, the Project covered, and the date and time of acceptance.
 
