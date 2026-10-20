@@ -94,6 +94,9 @@ The examples are in `examples/`, and each one prints what it checks:
 - `04-hybrid-envelope.mjs`: the Ed25519 and ML-DSA-65 entries of a hybrid record (needs Node 24).
 - `05-build-and-verify-a-record.mjs`: build, hash, sign, pin and verify a record from scratch, with a runtime test key.
 - `06-command-line.mjs`: the command-line exit codes, and fingerprinting a key for pinning.
+- `07-whole-record-coverage.mjs`: what coverage `full` and `legacy` mean, and that a changed covered field is refused.
+- `08-hybrid-cutover.mjs`: the `hybridRequiredFrom` cutover, and what it adds to a record created after it.
+- `09-unsupported-schema-version.mjs`: a schema version other than 2 or 3 is refused, not guessed at.
 
 Each example exits 0 when it behaves as described, so the set runs in CI.
 
