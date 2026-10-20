@@ -104,8 +104,9 @@ test("injecting a __proto__ key into a signed record breaks verification", () =>
   const key = makeKeyPair();
   const record = makeRecord({}, key);
   const tampered = JSON.parse(JSON.stringify(record));
+  // Prepend the injected key to the serialized object, dropping its opening brace.
   tampered.transaction = JSON.parse(
-    JSON.stringify(tampered.transaction).replace("{", '{"__proto__":{"injected":true},'),
+    '{"__proto__":{"injected":true},' + JSON.stringify(tampered.transaction).slice(1),
   );
   const result = verifyExecutionTrustRecord(tampered, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
