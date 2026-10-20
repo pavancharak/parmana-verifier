@@ -8,7 +8,7 @@
 
 **Version:** 1.0  
 
-**Effective Date:** The date on which the Contributor accepts this Agreement
+**Effective Date:** 1 May 2026
 
 ## 1. Definitions
 
