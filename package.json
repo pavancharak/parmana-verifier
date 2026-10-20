@@ -19,5 +19,22 @@
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pavancharak/parmana-verifier.git"
+  },
+  "homepage": "https://github.com/pavancharak/parmana-verifier#readme",
+  "bugs": {
+    "url": "https://github.com/pavancharak/parmana-verifier/issues"
+  },
+  "keywords": [
+    "parmana",
+    "verifier",
+    "execution-trust-record",
+    "ed25519",
+    "ml-dsa",
+    "post-quantum",
+    "offline"
+  ]
 }

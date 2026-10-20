@@ -1,6 +1,28 @@
 # Parmana Verifier
 
+[![CI](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 The Parmana verifier checks an Execution Trust Record offline. It recomputes the record's hash, and checks its Ed25519 and, where present, ML-DSA-65 signatures against keys you pin in a trust file. It makes no network calls.
+
+## Quick start
+
+Requires Node.js 24 or later. There are no dependencies. From a clone of this repository:
+
+```sh
+node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vectors/trust-whole-record.json
+```
+
+```json
+{"valid":true,"coverage":"full","errors":[],"checks":{"trustRecordHash":true,"signature":true,"hybridSignatures":true}}
+```
+
+The exit code is `0`. A record that has been changed is rejected:
+
+```sh
+node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vectors/trust.json
+```
+
+The exit code is `1`, and the output lists the failed checks. The test vectors are labelled test material, see [test/vectors/README.md](test/vectors/README.md). For real records, pin the keys you trust (see [Pinning a key](#pinning-a-key)).
 
 ## Installation and usage
 
@@ -110,6 +132,7 @@ This is version 0.3.0. Changes between releases are listed in [CHANGELOG.md](CHA
 - [SECURITY.md](SECURITY.md): how to report a vulnerability privately.
 - [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): the scope for an external security review.
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute and the Contributor License Agreement.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): expected behaviour in this project's spaces.
 
 ## Reporting a vulnerability
 
