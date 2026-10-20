@@ -83,7 +83,7 @@ Run the tests on Node 24:
 npm test
 ```
 
-On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test/helpers.mjs` generates test keys at runtime, labelled "TEST KEY - NOT FOR PRODUCTION", and never writes them to disk. The suite on Node 24.22 runs 44 tests with none skipped.
+On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test/helpers.mjs` generates test keys at runtime, labelled "TEST KEY - NOT FOR PRODUCTION", and never writes them to disk. The suite on Node 24.22 runs 58 tests with none skipped.
 
 - `test/verify.test.mjs` covers the legacy signature and hash: a valid record verifies; changing a signed field fails; a signature from another key fails; an unknown `keyId` fails; an unsupported algorithm fails; a non-Ed25519 key fails; records over 4096 bytes verify when signed as a commitment or raw; a commitment over a small record is rejected; `__proto__` keys are covered by the hash; and the CLI exit codes.
 - `test/hybrid.test.mjs` covers hybrid `signatures`: both entries must verify over the canonical fields plus `schemaVersion`; a single entry, a repeated algorithm, an unknown algorithm, a wrong key type, a wrong `schemaVersion`, changed fields, and malformed entries all fail.
