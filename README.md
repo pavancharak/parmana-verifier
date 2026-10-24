@@ -2,13 +2,21 @@
 
 [![CI](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-The Parmana verifier checks an Execution Trust Record offline. It recomputes the record's hash, and checks its Ed25519 and, where present, ML-DSA-65 signatures against keys you pin in a trust file. It makes no network calls.
+Check whether an AI agent's action was approved and recorded as signed, using only a file and the keys you trust. No network access, no account, no dependencies.
+
+Parmana signs an **Execution Trust Record** for every action an agent takes through it. The record says what was authorized, what ran, and what the outcome was, and it is signed with keys. This verifier checks that a record has not been changed and that it was signed by keys you chose to trust. It does not ask Parmana's servers anything, so you do not have to trust them to check a record.
 
 The records come from [Parmana](https://github.com/pavancharak/parmana-core), which signs them. The verifier works without the rest of Parmana: it needs only a record and a trust file.
 
+## Who it is for
+
+- **Auditors and reviewers** who need to confirm a record without relying on the system that produced it.
+- **Operators** who want to check records in their own environment, with keys they pinned themselves.
+- **Developers** who want a small, dependency-free reference implementation of the record checks.
+
 ## Quick start
 
-Requires Node.js 24 or later. There are no dependencies. From a clone of this repository:
+Requires Node.js 24 or later. Ed25519 works on any Node 24 build; post-quantum ML-DSA-65 signatures need OpenSSL 3.5 or later. From a clone of this repository:
 
 ```sh
 node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vectors/trust-whole-record.json
@@ -24,11 +32,11 @@ The exit code is `0`. A record that has been changed is rejected:
 node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vectors/trust.json
 ```
 
-The exit code is `1`, and the output lists the failed checks. The test vectors are labelled test material, see [test/vectors/README.md](test/vectors/README.md). For real records, pin the keys you trust (see [Pinning a key](#pinning-a-key)).
+The exit code is `1`, and the output lists the failed checks. The test vectors are labelled test material; see [test/vectors/README.md](test/vectors/README.md). For real records, pin the keys you trust (see [Pinning a key](#pinning-a-key)).
 
 ## Installation and usage
 
-Requires Node.js 24 or later with OpenSSL 3.5 or later (for ML-DSA-65). It has no dependencies.
+The package is not published to npm. Run it from a clone of this repository.
 
 ```sh
 node bin/parmana-verify.mjs <proof.json> <trust.json>
@@ -58,11 +66,11 @@ node bin/parmana-verify.mjs key-fingerprint <public-key.pem>
 
 The verify command prints one line of JSON and exits with `0` (valid), `1` (invalid, with reasons), or `2` (usage, missing file, or invalid JSON). The full input and output rules are in [docs/FORMAT.md](docs/FORMAT.md).
 
-On Windows PowerShell, use the same commands with the Windows path form, for example `node bin\parmana-verify.mjs proof.json trust.json`.
-
-The package is not published to npm. Run it from a clone of this repository.
+On Windows PowerShell, use the same commands with Windows paths, for example `node bin\parmana-verify.mjs proof.json trust.json`.
 
 ## Pinning a key
+
+A signature proves only that a key made it. Before you trust a record, decide which keys you trust, and check that each key is the one its owner published.
 
 1. Get the operator's public key PEM and the `sha256:` fingerprint they published. Get the fingerprint from a source other than the one that gave you the key, such as a signed message or a call to a known number.
 2. Run `node bin/parmana-verify.mjs key-fingerprint public-key.pem` on the PEM you received.
@@ -100,29 +108,23 @@ The examples are in `examples/`, and each one prints what it checks:
 - `08-hybrid-cutover.mjs`: the `hybridRequiredFrom` cutover, and what it adds to a record created after it.
 - `09-unsupported-schema-version.mjs`: a schema version other than 2 or 3 is refused, not guessed at.
 
-Each example exits 0 when it behaves as described, so the set runs in CI.
+Each example exits `0` when it behaves as described, so the set runs in CI.
 
-## What is tested
-
-Run the tests on Node 24:
+## Testing
 
 ```sh
 npm test
 ```
 
-On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test/helpers.mjs` generates test keys at runtime, labelled "TEST KEY - NOT FOR PRODUCTION", and never writes them to disk. The suite on Node 24.22 runs 58 tests with none skipped.
+Run the tests on Node 24. On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. Test keys are generated at run time, labelled "TEST KEY - NOT FOR PRODUCTION", and never written to disk.
 
-- `test/verify.test.mjs` covers the legacy signature and hash: a valid record verifies; changing a signed field fails; a signature from another key fails; an unknown `keyId` fails; an unsupported algorithm fails; a non-Ed25519 key fails; records over 4096 bytes verify when signed as a commitment or raw; a commitment over a small record is rejected; `__proto__` keys are covered by the hash; and the CLI exit codes.
-- `test/hybrid.test.mjs` covers hybrid `signatures`: both entries must verify over the canonical fields plus `schemaVersion`; a single entry, a repeated algorithm, an unknown algorithm, a wrong key type, a wrong `schemaVersion`, changed fields, and malformed entries all fail.
-- `test/vectors.test.mjs` checks the records in `test/vectors/`, which were signed by this repository's own signing code. They are labelled TEST KEY - NOT FOR PRODUCTION, and their results match the repository's offline verifier.
-- `test/whole-record.test.mjs` covers schema version 3: a change to `updatedAt` fails, `verifications` and `receipts` are not covered, a v3 record relabelled as v2 fails, a v3 record with no signatures fails, and the `hybridRequiredFrom` cutover, which is inclusive.
-- `test/trust.test.mjs` covers the trust rules: a PEM that doesn't match its pinned fingerprint fails; `validFrom` is inclusive and `validUntil` exclusive; a compromised key fails inside its window; an algorithm mismatch fails; an unparseable `createdAt` fails; malformed or duplicate trust entries are rejected; and the `key-fingerprint` command.
+The suite covers the legacy signature and hash, hybrid signatures, schema version 3 coverage, the trust rules, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
 
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
 - For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
-- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check `coverage` is `full` when that matters.
+- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check that `coverage` is `full` when that matters.
 - A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this.
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
@@ -130,22 +132,9 @@ On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. `test
 - It does not confirm that the action described by the record was executed.
 - The records in `test/vectors/` were produced by the Parmana signing code and are test material only. They show that the checks agree with that code; they are not an independent specification.
 
-## Versions and documents
+## Status
 
-This is version 0.3.0. Changes between releases are listed in [CHANGELOG.md](CHANGELOG.md).
-
-- [SECURITY.md](SECURITY.md): how to report a vulnerability privately.
-- [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): the scope for an external security review.
-- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute and sign off commits.
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): expected behaviour in this project's spaces.
-
-## Reporting a vulnerability
-
-Do not open a public issue for a security problem. Report it through GitHub's private vulnerability reporting: open the **Security** tab and choose **Report a vulnerability**. See [SECURITY.md](SECURITY.md).
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Run `npm test` on Node 24 first. Every commit must carry a `Signed-off-by` line (`git commit -s`), certifying the [Developer Certificate of Origin](https://developercertificate.org). Do not submit code or documents from any other Parmana repository.
+This is version 0.3.0. The record formats and the command-line interface may still change before 1.0; each change is listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Repository layout
 
@@ -157,6 +146,14 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Run `npm
 | `examples/`  | Nine runnable examples, run by `npm run examples`                        |
 | `docs/`      | `FORMAT.md` (the input and output rules) and `SECURITY-REVIEW.md`        |
 
+## Security
+
+Do not open a public issue for a security problem. Report it through GitHub's private vulnerability reporting: open the **Security** tab and choose **Report a vulnerability**. See [SECURITY.md](SECURITY.md). The scope for an external review is in [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md).
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Run `npm test` on Node 24 first. Every commit must carry a `Signed-off-by` line (`git commit -s`), certifying the [Developer Certificate of Origin](https://developercertificate.org). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
-Licensed under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
