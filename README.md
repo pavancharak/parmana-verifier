@@ -50,6 +50,14 @@ npx @parmana/verifier <proof.json> <trust.json>
 
 From a clone of this repository, run the same commands with `node bin/parmana-verify.mjs` in place of `parmana-verify`.
 
+There is also a Python version in [`python/`](python/README.md). It checks the same records and gives the same results, except that it cannot check ML-DSA-65 (hybrid) signatures. Use the Node version for those. From a clone:
+
+```sh
+cd python
+pip install -e .
+parmana-verify <proof.json> <trust.json>
+```
+
 - `proof.json` is the Execution Trust Record.
 - `trust.json` is the trust set. It lists each key you accept:
 
