@@ -23,7 +23,13 @@ This is the Python counterpart of the Node verifier in the repository root. It c
 
 ## Install
 
-Requires Python 3.11 or later (tested on 3.11, 3.12 and 3.13). The only dependency is `cryptography` (version 42 or later). It is not yet published to PyPI, so install from a clone of this repository:
+Requires Python 3.11 or later (tested on 3.11, 3.12 and 3.13). The only dependency is `cryptography` (version 42 or later).
+
+```sh
+pip install parmana-verifier
+```
+
+From a clone of this repository:
 
 ```sh
 cd python
