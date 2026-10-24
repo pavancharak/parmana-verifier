@@ -1,0 +1,18 @@
+# Code owners review changes to the paths below. GitHub applies the last
+# matching rule, so the catch-all comes first and specific paths after it.
+#
+# Every rule names the repository owner for now. When a second reviewer
+# joins, name them on the security-sensitive paths and require their review
+# through the main-protection ruleset.
+
+* @pavancharak
+
+# The checks themselves: canonical JSON, hashing, signatures and trust rules.
+/src/ @pavancharak
+
+# The command-line entry point and how it reads files.
+/bin/ @pavancharak
+
+# CI, release and package configuration.
+/.github/ @pavancharak
+/package.json @pavancharak
