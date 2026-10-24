@@ -134,7 +134,7 @@ This is version 0.3.0. Changes between releases are listed in [CHANGELOG.md](CHA
 
 - [SECURITY.md](SECURITY.md): how to report a vulnerability privately.
 - [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): the scope for an external security review.
-- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute and the Contributor License Agreement.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute and sign off commits.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): expected behaviour in this project's spaces.
 
 ## Reporting a vulnerability
@@ -143,7 +143,7 @@ Do not open a public issue for a security problem. Report it through GitHub's pr
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. You accept the Contributor License Agreement by checking the acceptance box in the pull request template. Do not submit code or documents from any other Parmana repository.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Every commit must carry a `Signed-off-by` line (`git commit -s`), certifying the [Developer Certificate of Origin](https://developercertificate.org). Do not submit code or documents from any other Parmana repository.
 
 ## License
 
