@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security issue privately
+    url: https://github.com/pavancharak/parmana-verifier/security/advisories/new
+    about: Do not open a public issue for a vulnerability; see SECURITY.md.
+  - name: Read the trust-record format
+    url: https://github.com/pavancharak/parmana-verifier/blob/main/docs/FORMAT.md
+    about: The fields each signature covers, and how a record is checked.
