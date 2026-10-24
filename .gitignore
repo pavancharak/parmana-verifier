@@ -7,6 +7,12 @@ package-lock.json
 node_modules/
 coverage/
 *.log
+__pycache__/
+*.egg-info/
+python/build/
+python/dist/
+python/.venv/
+.pytest_cache/
 
 # Editors and operating systems
 .vscode/
