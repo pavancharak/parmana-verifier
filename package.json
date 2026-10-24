@@ -1,5 +1,5 @@
 {
-  "name": "parmana-verifier",
+  "name": "@parmana/verifier",
   "version": "0.3.0",
   "description": "Offline verifier for Parmana Execution Trust Records.",
   "license": "Apache-2.0",

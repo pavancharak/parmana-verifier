@@ -36,12 +36,19 @@ The exit code is `1`, and the output lists the failed checks. The test vectors a
 
 ## Installation and usage
 
-The package is not published to npm. Run it from a clone of this repository.
+The package is published on npm as [`@parmana/verifier`](https://www.npmjs.com/package/@parmana/verifier). Install it, or run it without installing:
 
 ```sh
-node bin/parmana-verify.mjs <proof.json> <trust.json>
-node bin/parmana-verify.mjs key-fingerprint <public-key.pem>
+npm install -g @parmana/verifier
+parmana-verify <proof.json> <trust.json>
+parmana-verify key-fingerprint <public-key.pem>
 ```
+
+```sh
+npx @parmana/verifier <proof.json> <trust.json>
+```
+
+From a clone of this repository, run the same commands with `node bin/parmana-verify.mjs` in place of `parmana-verify`.
 
 - `proof.json` is the Execution Trust Record.
 - `trust.json` is the trust set. It lists each key you accept:
