@@ -21,5 +21,6 @@ Out of scope: how a public key is distributed to you. The verifier only proves t
 
 | Version | Supported |
 | ------- | --------- |
+| 0.3.x   | Yes       |
 | 0.2.x   | Yes       |
 | < 0.2   | No        |

@@ -1,4 +1,4 @@
-# Security review scope: parmana-verifier 0.2.0
+# Security review scope: parmana-verifier 0.3.0
 
 This document is for an external reviewer. It lists what the verifier is meant to do, what to examine, and how to run it. The verifier is an offline checker for Parmana Execution Trust Records. It does not sign, send, or call any service.
 
