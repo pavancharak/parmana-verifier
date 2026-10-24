@@ -4,6 +4,8 @@
 
 The Parmana verifier checks an Execution Trust Record offline. It recomputes the record's hash, and checks its Ed25519 and, where present, ML-DSA-65 signatures against keys you pin in a trust file. It makes no network calls.
 
+The records come from [Parmana](https://github.com/pavancharak/parmana-core), which signs them. The verifier works without the rest of Parmana: it needs only a record and a trust file.
+
 ## Quick start
 
 Requires Node.js 24 or later. There are no dependencies. From a clone of this repository:
@@ -143,7 +145,17 @@ Do not open a public issue for a security problem. Report it through GitHub's pr
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Every commit must carry a `Signed-off-by` line (`git commit -s`), certifying the [Developer Certificate of Origin](https://developercertificate.org). Do not submit code or documents from any other Parmana repository.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request. Run `npm test` on Node 24 first. Every commit must carry a `Signed-off-by` line (`git commit -s`), certifying the [Developer Certificate of Origin](https://developercertificate.org). Do not submit code or documents from any other Parmana repository.
+
+## Repository layout
+
+| Path         | Contents                                                                 |
+| ------------ | ------------------------------------------------------------------------ |
+| `bin/`       | The `parmana-verify` command-line entry point                            |
+| `src/`       | The checks: canonical JSON, hashing, signatures, trust rules             |
+| `test/`      | The test suite, and `test/vectors/`, the labelled test records           |
+| `examples/`  | Nine runnable examples, run by `npm run examples`                        |
+| `docs/`      | `FORMAT.md` (the input and output rules) and `SECURITY-REVIEW.md`        |
 
 ## License
 
