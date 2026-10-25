@@ -8,6 +8,8 @@ Parmana signs an **Execution Trust Record** for every action an agent takes thro
 
 The records come from [Parmana](https://github.com/pavancharak/parmana-core), which signs them. The verifier works without the rest of Parmana: it needs only a record and a trust file.
 
+Test results, the security review scope and the changelog are indexed under [Reports and evidence](#reports-and-evidence).
+
 ## Who it is for
 
 - **Auditors and reviewers** who need to confirm a record without relying on the system that produced it.
@@ -146,6 +148,27 @@ The suite covers the legacy signature and hash, hybrid signatures, schema versio
 - It does not confirm that the action described by the record was executed.
 - The records in `test/vectors/` were produced by the Parmana signing code and are test material only. They show that the checks agree with that code; they are not an independent specification.
 
+## Reports and evidence
+
+Every report is listed once, here. Start with the question you have.
+
+**Test results**
+
+- **Live CI runs:** the [CI workflow](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml) runs the tests and examples on every push. The [Python workflow](https://github.com/pavancharak/parmana-verifier/actions/workflows/python.yml) runs the Python package tests.
+- **Test suite:** what it covers, and how to run it on Node 24, is under [Testing](#testing).
+- **Test vectors:** labelled test records and keys, in [test/vectors/](test/vectors/README.md). They are for tests only, not for production use.
+- **Examples:** nine runnable examples that check their own behaviour, run by `npm run examples` ([Examples](#examples)).
+
+**Security**
+
+- **Security review scope:** [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md) is written for an external reviewer. It covers what the verifier claims, what to examine, and its known limits.
+- **Security policy:** [SECURITY.md](SECURITY.md) explains how to report a vulnerability privately.
+
+**Releases**
+
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) lists each change to the record formats and the command-line interface.
+
+---
 ## Status
 
 This is version 0.3.0. The record formats and the command-line interface may still change before 1.0; each change is listed in [CHANGELOG.md](CHANGELOG.md).
@@ -159,6 +182,7 @@ This is version 0.3.0. The record formats and the command-line interface may sti
 | `test/`      | The test suite, and `test/vectors/`, the labelled test records           |
 | `examples/`  | Nine runnable examples, run by `npm run examples`                        |
 | `docs/`      | `FORMAT.md` (the input and output rules) and `SECURITY-REVIEW.md`        |
+| `reports/`   | Pointer to the reports index in this README (see Reports and evidence)   |
 
 ## Security
 
