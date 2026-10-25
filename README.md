@@ -169,6 +169,16 @@ Every report is listed once, here. Start with the question you have.
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md) lists each change to the record formats and the command-line interface.
 
 ---
+## Read the Parmana blog
+
+The [Parmana blog](https://blog.parmanasystems.com) explains how the verifier fits into the wider product, in plain terms. Read the post for your role:
+
+- **Auditors and risk teams:** [Check a record offline, without trusting us](https://blog.parmanasystems.com/2026/10/25/check-a-record-offline/). How to verify a signed record with only a file and a trust file, and what the check does not cover.
+- **Engineers:** [Run the checks in an afternoon](https://blog.parmanasystems.com/2026/10/25/run-the-checks-in-an-afternoon/). Build, test and verify a record from source.
+- **Anyone who wants the honest picture:** [Lessons from the limits we still have](https://blog.parmanasystems.com/2026/10/25/lessons-from-the-limits-we-still-have/). What we got wrong, and what remains open.
+
+New posts are published regularly, so check the blog for updates.
+
 ## Status
 
 This is version 0.3.0. The record formats and the command-line interface may still change before 1.0; each change is listed in [CHANGELOG.md](CHANGELOG.md).
