@@ -8,6 +8,8 @@ Parmana signs an **Execution Trust Record** for every action an agent takes thro
 
 The records come from [Parmana](https://github.com/pavancharak/parmana-core), which signs them. The verifier works without the rest of Parmana: it needs only a record and a trust file.
 
+Test results, the security review scope and the changelog are indexed under [Reports and evidence](#reports-and-evidence).
+
 ## Who it is for
 
 - **Auditors and reviewers** who need to confirm a record without relying on the system that produced it.
