@@ -13,14 +13,17 @@ Include:
 
 ## Scope
 
-In scope: the verifier's checks in `src/` (hash, legacy and hybrid signatures, the trust rules, and the command-line tool).
+In scope: the verifier's checks in `src/` (the Node package, `@parmana/verifier`) and in `python/` (the Python package, `parmana-verifier`). Both cover the hash, legacy and hybrid signatures, the trust rules, and the command-line tool.
 
 Out of scope: how a public key is distributed to you. The verifier only proves that a record matches a key you pinned. It cannot prove who owns that key.
 
 ## Supported versions
 
-| Version | Supported |
-| ------- | --------- |
-| 0.3.x   | Yes       |
-| 0.2.x   | Yes       |
-| < 0.2   | No        |
+| Package | Version | Supported |
+| ------- | ------- | --------- |
+| `@parmana/verifier` (npm) | 0.3.x | Yes |
+| `@parmana/verifier` (npm) | 0.2.x | Yes |
+| `@parmana/verifier` (npm) | < 0.2 | No |
+| `parmana-verifier` (PyPI) | 0.1.x | Yes |
+
+The Python package checks Ed25519 signatures only. It cannot check ML-DSA-65 (hybrid) signatures, so for those records use the Node package.
