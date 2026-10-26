@@ -1,0 +1,24 @@
+{
+  "trustRecordId": "tr-python-quickstart",
+  "businessTransactionId": "btx-python-quickstart",
+  "transaction": {
+    "amount": 100,
+    "currency": "INR"
+  },
+  "authorization": {
+    "approvedBy": "test-approver"
+  },
+  "overrides": null,
+  "executions": [
+    {
+      "n": 1
+    }
+  ],
+  "createdAt": "2026-06-01T12:00:00.000Z",
+  "trustRecordHash": "9a41fa075ab87a4e02b011a59558676beefc7ea4761e41ec28a09354a9ee9db7",
+  "signature": {
+    "algorithm": "ed25519",
+    "keyId": "python-test-key",
+    "signature": "Tp2rObE3L1J/y+rpFXCtfi1M2W1h0MMptOz3D05/W+lD1GQ32X0ezGUU+B88coX2HhVQYlpGxvBWB+Ldt7l3Cw=="
+  }
+}

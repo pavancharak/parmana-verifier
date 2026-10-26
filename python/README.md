@@ -38,6 +38,39 @@ pip install -e .
 
 For the tests, install the `test` extra as well: `pip install -e ".[test]"`.
 
+## Quick start
+
+From a clone of this repository, at the repository root:
+
+```sh
+pip install -e python
+parmana-verify test/vectors/record-python-ed25519.json test/vectors/trust-python-ed25519.json
+```
+
+```json
+{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true}}
+```
+
+The exit code is `0`. Change the record and it is rejected:
+
+```sh
+parmana-verify test/vectors/record-python-ed25519-tampered.json test/vectors/trust-python-ed25519.json
+```
+
+The exit code is `1`, and the output lists the failed checks. The same check from Python:
+
+```python
+import json
+from parmana_verifier import parse_trust_policy, verify_execution_trust_record
+
+record = json.load(open("test/vectors/record-python-ed25519.json"))
+policy = parse_trust_policy(json.load(open("test/vectors/trust-python-ed25519.json")))
+result = verify_execution_trust_record(record, policy.keys, policy.hybrid_required_from)
+print(result["valid"], result["errors"])
+```
+
+The sample files are test material, signed with a fixed test key. For real records, pin the keys you trust with `parmana-verify key-fingerprint` (see below).
+
 ## Command line
 
 ```sh
