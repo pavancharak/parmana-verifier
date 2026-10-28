@@ -166,7 +166,9 @@ Every report is listed once, here. Start with the question you have.
 
 **Releases**
 
+- **Published versions:** `@parmana/verifier` 1.6.2 on npm and `parmana-verifier` 1.6.2 on PyPI, from release `verifier-v1.6.2`.
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md) lists each change to the record formats and the command-line interface.
+- **Release process:** [RELEASING.md](RELEASING.md) describes how a release is built, checked and published.
 
 ---
 ## Read the Parmana blog
