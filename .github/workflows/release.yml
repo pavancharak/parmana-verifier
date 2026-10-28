@@ -1,0 +1,102 @@
+# Builds the npm and Python packages when a GitHub release is published,
+# attaches them to the release with a CycloneDX SBOM for the npm package, and
+# attaches SLSA build provenance (multiple.intoto.jsonl): a signed statement,
+# made by GitHub's OIDC identity for this workflow, of which commit and workflow
+# produced each file and its SHA-256.
+#
+# It does not publish to npm or PyPI; publishing stays a separate, manual step.
+# The release's tag should be the commit the packages were published from
+# (for example sdk-v1.6.2 or verifier-v1.6.2).
+#
+# The Python package also depends on cryptography. Its SBOM is not written here
+# yet, so the wheel and source distribution are attached without one.
+
+name: Release artifacts
+
+on:
+  release:
+    types: [published]
+
+permissions: read-all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload the packages to the release
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          # No dependency cache: a release builds only from the checked-out code,
+          # never from a cache another run could have written.
+          package-manager-cache: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Test
+        run: |
+          npm test
+          python -m pip install --quiet pytest cryptography
+          PYTHONPATH=python python -m pytest -q python/tests
+
+      - name: Pack the npm package
+        run: |
+          mkdir -p release-dist
+          npm pack --pack-destination release-dist
+
+      - name: Build the Python package
+        run: |
+          python -m pip install --quiet build==1.6.1
+          python -m build python --outdir release-dist
+
+      - name: Write the npm SBOM
+        # One CycloneDX file for the npm package, named <package file>.cdx.json.
+        # Written from the packed package itself, runtime dependencies only, and
+        # written before hashing so the provenance covers it too.
+        run: |
+          for tgz in release-dist/*.tgz; do
+            work="$(mktemp -d)"
+            tar -xzf "$tgz" -C "$work"
+            (
+              cd "$work/package"
+              npm install --package-lock-only --omit=dev --ignore-scripts --no-audit --no-fund
+              npm sbom --package-lock-only --omit=dev --sbom-format=cyclonedx --sbom-type=library > sbom.json
+            )
+            mv "$work/package/sbom.json" "$tgz.cdx.json"
+            rm -rf "$work"
+          done
+
+      - name: Hash the packages
+        id: hash
+        working-directory: release-dist
+        run: |
+          ls -l
+          echo "hashes=$(sha256sum -- * | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Attach the packages to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" release-dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  provenance:
+    needs: build
+    permissions:
+      actions: read # read the workflow run
+      id-token: write # sign the provenance with GitHub's OIDC identity
+      contents: write # upload the provenance to the release
+    # Referenced by tag, not commit: the generator verifies its own ref and
+    # only accepts a release tag, so pinning it to a commit breaks it.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      base64-subjects: ${{ needs.build.outputs.hashes }}
+      upload-assets: true
