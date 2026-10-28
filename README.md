@@ -181,7 +181,7 @@ New posts are published regularly, so check the blog for updates.
 
 ## Status
 
-This is version 0.3.0. The record formats and the command-line interface may still change before 1.0; each change is listed in [CHANGELOG.md](CHANGELOG.md).
+This is version 1.6.2, released with the SDK packages. Each change to the record formats or the command-line interface is listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Repository layout
 

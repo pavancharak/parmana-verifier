@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] - 2026-10-28
+
+- Version aligned with the Parmana SDK packages (`@parmana/sdk`, `parmana`, `@parmana/connector-sdk`, `parmana-connector-sdk`), all at 1.6.2. The `@parmana/verifier` npm package goes from 0.3.0 to 1.6.2, and the `parmana-verifier` PyPI package from 0.1.0 to 1.6.2.
+- No verification code changed. The Node CLI is unchanged since 0.3.0. The Python package has only documentation changes since 0.1.0.
+
 ## [0.3.0] - 2026-10-19
 
 - Verifies schema version 3 records: a hybrid envelope over every field except the signature envelope, `verifications` and `receipts`. A change to a field such as `updatedAt` now fails verification.

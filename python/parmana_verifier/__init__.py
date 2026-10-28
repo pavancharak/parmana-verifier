@@ -19,4 +19,4 @@ __all__ = [
     "verify_execution_trust_record",
 ]
 
-__version__ = "0.1.0"
+__version__ = "1.6.2"

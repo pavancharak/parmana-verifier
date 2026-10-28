@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "parmana-verifier"
-version = "0.1.0"
+version = "1.6.2"
 description = "Offline verifier for Parmana Execution Trust Records (Python)."
 readme = "README.md"
 license = { text = "Apache-2.0" }
