@@ -25,7 +25,16 @@ node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vector
 ```
 
 ```json
-{"valid":true,"coverage":"full","errors":[],"checks":{"trustRecordHash":true,"signature":true,"hybridSignatures":true}}
+{
+  "valid": true,
+  "coverage": "full",
+  "errors": [],
+  "checks": {
+    "trustRecordHash": true,
+    "signature": true,
+    "hybridSignatures": true
+  }
+}
 ```
 
 The exit code is `0`. A record that has been changed is rejected:
@@ -35,6 +44,15 @@ node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vector
 ```
 
 The exit code is `1`, and the output lists the failed checks. The test vectors are labelled test material; see [test/vectors/README.md](test/vectors/README.md). For real records, pin the keys you trust (see [Pinning a key](#pinning-a-key)).
+
+On Windows PowerShell, run the same two commands with Windows paths. Use Node 24 or later:
+
+```powershell
+node bin\parmana-verify.mjs test\vectors\record-whole-record-v3.json test\vectors\trust-whole-record.json
+node bin\parmana-verify.mjs test\vectors\record-tampered-amount.json test\vectors\trust.json
+```
+
+The first prints the valid result above and exits with `0`. The second prints `"valid":false` and exits with `1`.
 
 ## Installation and usage
 
@@ -171,6 +189,7 @@ Every report is listed once, here. Start with the question you have.
 - **Release process:** [RELEASING.md](RELEASING.md) describes how a release is built, checked and published.
 
 ---
+
 ## Read the Parmana blog
 
 The [Parmana blog](https://blog.parmanasystems.com) explains how the verifier fits into the wider product, in plain terms. Read the post for your role:
@@ -185,16 +204,20 @@ New posts are published regularly, so check the blog for updates.
 
 This is version 1.6.2, released with the SDK packages. Each change to the record formats or the command-line interface is listed in [CHANGELOG.md](CHANGELOG.md).
 
+On 2026-10-29, on Node 24.22.1 and Windows PowerShell, the two quick-start commands above returned the output shown, with exit codes `0` and `1`. The release process builds the packages, records their hashes, and attaches build provenance. See [RELEASING.md](RELEASING.md) for the steps.
+
+What this version does not do is listed under [Limitations](#limitations).
+
 ## Repository layout
 
-| Path         | Contents                                                                 |
-| ------------ | ------------------------------------------------------------------------ |
-| `bin/`       | The `parmana-verify` command-line entry point                            |
-| `src/`       | The checks: canonical JSON, hashing, signatures, trust rules             |
-| `test/`      | The test suite, and `test/vectors/`, the labelled test records           |
-| `examples/`  | Nine runnable examples, run by `npm run examples`                        |
-| `docs/`      | `FORMAT.md` (the input and output rules) and `SECURITY-REVIEW.md`        |
-| `reports/`   | Pointer to the reports index in this README (see Reports and evidence)   |
+| Path        | Contents                                                               |
+| ----------- | ---------------------------------------------------------------------- |
+| `bin/`      | The `parmana-verify` command-line entry point                          |
+| `src/`      | The checks: canonical JSON, hashing, signatures, trust rules           |
+| `test/`     | The test suite, and `test/vectors/`, the labelled test records         |
+| `examples/` | Nine runnable examples, run by `npm run examples`                      |
+| `docs/`     | `FORMAT.md` (the input and output rules) and `SECURITY-REVIEW.md`      |
+| `reports/`  | Pointer to the reports index in this README (see Reports and evidence) |
 
 ## Security
 
