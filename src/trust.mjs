@@ -47,6 +47,14 @@ export function parseTrustPolicy(document) {
     hybridRequiredFrom = document.hybridRequiredFrom;
   }
 
+  // Off by default: a record with no hybrid envelope is refused unless the
+  // trust file explicitly allows legacy-only records.
+  if (document.allowLegacyOnly !== undefined && typeof document.allowLegacyOnly !== "boolean") {
+    throw new Error('allowLegacyOnly must be true or false');
+  }
+
+  const allowLegacyOnly = document.allowLegacyOnly === true;
+
   const trustKeys = new Map();
 
   for (const [index, entry] of document.keys.entries()) {
@@ -100,5 +108,5 @@ export function parseTrustPolicy(document) {
     });
   }
 
-  return { keys: trustKeys, hybridRequiredFrom };
+  return { keys: trustKeys, hybridRequiredFrom, allowLegacyOnly };
 }

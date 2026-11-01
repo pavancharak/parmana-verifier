@@ -1,6 +1,6 @@
 {
   "name": "@parmana/verifier",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Offline verifier for Parmana Execution Trust Records.",
   "license": "Apache-2.0",
   "type": "module",

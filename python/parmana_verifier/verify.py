@@ -81,7 +81,7 @@ def hybrid_message(record, schema_version):
     return canonical_bytes({**canonical_trust_record(record), "schemaVersion": schema_version})
 
 
-def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None):
+def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None, allow_legacy_only=False):
     """Verify a record against a trust set (a dict keyId -> TrustEntry).
 
     Returns a dict with valid, coverage ("full" or "legacy"), errors and checks,
@@ -121,14 +121,26 @@ def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None)
         errors.append("schemaVersion 3 record has no signatures array: a whole-record signature is required.")
         checks["hybridSignatures"] = False
 
-    cutover_ok = not _is_at_or_after_cutover(record.get("createdAt"), hybrid_required_from) or checks.get("hybridSignatures") is True
+    # A record with no hybrid envelope is accepted only when the caller allows
+    # it: a cutover is given and the record predates it, or no cutover is given
+    # and allow_legacy_only is True. Otherwise it is refused.
+    cutover_given = hybrid_required_from is not None
+    predates_cutover = cutover_given and not _is_at_or_after_cutover(record.get("createdAt"), hybrid_required_from)
+    legacy_only_allowed = predates_cutover if cutover_given else allow_legacy_only is True
 
-    if not cutover_ok:
+    # A record created at or after the cutover needs a valid envelope, whether it
+    # is missing or present but invalid.
+    at_or_after_cutover = cutover_given and not predates_cutover
+    if at_or_after_cutover and checks.get("hybridSignatures") is not True:
         errors.append(f"record created at or after hybridRequiredFrom ({hybrid_required_from}) has no valid hybrid envelope.")
+    elif "hybridSignatures" not in checks and not legacy_only_allowed:
+        errors.append("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.")
+
+    envelope_ok = legacy_only_allowed if "hybridSignatures" not in checks else checks["hybridSignatures"] is True
 
     coverage = "full" if schema_version == WHOLE_RECORD_SCHEMA_VERSION and checks.get("hybridSignatures") is True else "legacy"
 
-    valid = hash_valid and signature_valid and checks.get("hybridSignatures", True) and cutover_ok
+    valid = hash_valid and signature_valid and envelope_ok
 
     return {"valid": bool(valid), "coverage": coverage, "errors": errors, "checks": checks}
 

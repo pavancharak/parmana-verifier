@@ -9,5 +9,6 @@
       "validUntil": null,
       "compromised": false
     }
-  ]
+  ],
+  "allowLegacyOnly": true
 }

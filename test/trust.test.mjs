@@ -53,7 +53,7 @@ test("a record inside the window is accepted, including validFrom itself", () =>
     validFrom: CREATED,
     validUntil: "2027-01-01T00:00:00.000Z",
   }));
-  assert.equal(verifyExecutionTrustRecord(record, trust).valid, true);
+  assert.equal(verifyExecutionTrustRecord(record, trust, { allowLegacyOnly: true }).valid, true);
 });
 
 test("a compromised key is rejected even inside its window", () => {

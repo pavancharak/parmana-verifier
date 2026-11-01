@@ -161,6 +161,15 @@ test("a record after the cutover with a valid hybrid envelope is accepted", { sk
   assert.equal(result.coverage, "full");
 });
 
+test("parseTrustPolicy reads allowLegacyOnly, off by default, and rejects a non-boolean", () => {
+  const ed = makeKeyPair();
+  const keys = [trustEntry("ed-key", "ed25519", ed)];
+
+  assert.equal(parseTrustPolicy({ keys }).allowLegacyOnly, false);
+  assert.equal(parseTrustPolicy({ keys, allowLegacyOnly: true }).allowLegacyOnly, true);
+  assert.throws(() => parseTrustPolicy({ keys, allowLegacyOnly: "yes" }), /allowLegacyOnly must be true or false/);
+});
+
 test("parseTrustPolicy reads hybridRequiredFrom and defaults it to null", () => {
   const ed = makeKeyPair();
   const keys = [trustEntry("ed-key", "ed25519", ed)];
