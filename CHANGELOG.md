@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- **Breaking:** a record with no hybrid envelope is refused by default. Before, it passed whenever its hash and legacy signature verified, even with no `hybridRequiredFrom` set, so a stripped envelope was accepted. Now it is accepted only if it predates a `hybridRequiredFrom` cutover, or the trust file sets `"allowLegacyOnly": true` and no cutover is set. Migration: if you verify legacy-only records and have no cutover, add `"allowLegacyOnly": true` to your trust file.
+- Adds the optional `allowLegacyOnly` trust-file field (a boolean, `false` when omitted), and the matching `allowLegacyOnly` option on `verifyExecutionTrustRecord`.
+- The Python package (`python/`) has the same change: the same default refusal, the same `allowLegacyOnly` trust-file field, and the same rules for a record created before or after `hybridRequiredFrom`.
+- The sample legacy-only vector `test/vectors/trust-python-ed25519.json` now sets `"allowLegacyOnly": true`, so the README example still verifies.
+
 ## [1.6.2] - 2026-10-28
 
 - Version aligned with the Parmana SDK packages (`@parmana/sdk`, `parmana`, `@parmana/connector-sdk`, `parmana-connector-sdk`), all at 1.6.2. The `@parmana/verifier` npm package goes from 0.3.0 to 1.6.2, and the `parmana-verifier` PyPI package from 0.1.0 to 1.6.2.

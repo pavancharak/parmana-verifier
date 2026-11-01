@@ -16,7 +16,7 @@ const BIN = fileURLToPath(new URL("../bin/parmana-verify.mjs", import.meta.url))
 test("a correctly hashed and signed record verifies", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true });
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
   assert.deepEqual(result.checks, { trustRecordHash: true, signature: true });
@@ -75,7 +75,7 @@ test("a record over 4096 bytes signed as a commitment verifies", () => {
   const big = "x".repeat(5000);
   const record = makeRecord({ transaction: { note: big } }, key, "test-key", "commitment");
   assert.ok(canonicalBytes(record).length > 4096);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true });
   assert.equal(result.valid, true);
 });
 
@@ -83,7 +83,7 @@ test("a record over 4096 bytes signed raw verifies", () => {
   const key = makeKeyPair();
   const big = "x".repeat(5000);
   const record = makeRecord({ transaction: { note: big } }, key, "test-key", "raw");
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true });
   assert.equal(result.valid, true);
 });
 
@@ -131,7 +131,7 @@ test("CLI exits 0 for a valid record", () => {
   const proof = join(dir, "proof.json");
   const keys = join(dir, "keys.json");
   writeFileSync(proof, JSON.stringify(makeRecord({}, key)));
-  writeFileSync(keys, JSON.stringify({ keys: [trustEntry("test-key", "ed25519", key)] }));
+  writeFileSync(keys, JSON.stringify({ keys: [trustEntry("test-key", "ed25519", key)], allowLegacyOnly: true }));
   const run = runCli([proof, keys]);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(run.stdout).valid, true);
@@ -154,3 +154,21 @@ test("CLI exits 2 on usage and read errors", () => {
   assert.equal(runCli(["/nonexistent/proof.json", "/nonexistent/keys.json"]).status, 2);
 });
 
+
+test("a legacy-only record is refused by default, with no cutover and no opt-in", () => {
+  const key = makeKeyPair();
+  const result = verifyExecutionTrustRecord(makeRecord({}, key), trustSet(trustEntry("test-key", "ed25519", key)));
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(" "), /no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly/);
+});
+
+test("a legacy-only record created after the cutover is refused even with allowLegacyOnly", () => {
+  const key = makeKeyPair();
+  const record = makeRecord({ createdAt: "2026-06-01T00:00:00.000Z" }, key);
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), {
+    hybridRequiredFrom: "2026-03-01T00:00:00.000Z",
+    allowLegacyOnly: true,
+  });
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(" "), /hybridRequiredFrom/);
+});

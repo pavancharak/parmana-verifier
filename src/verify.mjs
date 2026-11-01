@@ -116,16 +116,29 @@ export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
     checks.hybridSignatures = false;
   }
 
-  const cutoverOk = !isAtOrAfterCutover(record.createdAt, options.hybridRequiredFrom) || checks.hybridSignatures === true;
+  // A record with no hybrid envelope is accepted only when the caller allows
+  // it: explicitly (allowLegacyOnly), or because it predates a cutover the
+  // caller supplied. Otherwise it is refused, so a stripped envelope never
+  // passes by default.
+  const cutoverGiven = options.hybridRequiredFrom !== undefined && options.hybridRequiredFrom !== null;
+  const predatesCutover = cutoverGiven && !isAtOrAfterCutover(record.createdAt, options.hybridRequiredFrom);
+  // With a cutover, the cutover alone decides; allowLegacyOnly applies only when none is given.
+  const legacyOnlyAllowed = cutoverGiven ? predatesCutover : options.allowLegacyOnly === true;
 
-  if (!cutoverOk) {
-    errors.push(`record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`);
+  if (checks.hybridSignatures === undefined && !legacyOnlyAllowed) {
+    errors.push(
+      cutoverGiven
+        ? `record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`
+        : "record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.",
+    );
   }
+
+  const envelopeOk = checks.hybridSignatures === undefined ? legacyOnlyAllowed : checks.hybridSignatures;
 
   const coverage = schemaVersion === WHOLE_RECORD_SCHEMA_VERSION && checks.hybridSignatures === true ? "full" : "legacy";
 
   return {
-    valid: hashValid && signatureValid && (checks.hybridSignatures ?? true) && cutoverOk,
+    valid: hashValid && signatureValid && envelopeOk,
     coverage,
     errors,
     checks,

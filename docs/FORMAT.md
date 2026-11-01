@@ -50,7 +50,8 @@ The file may also set one optional top-level field:
 
 | Field | Required | Rule |
 |---|---|---|
-| `hybridRequiredFrom` | No | An ISO 8601 UTC timestamp ending in `Z`. A record whose `createdAt` is at or after this instant must have a valid hybrid envelope. If omitted or `null`, no record needs one. The file's owner sets it; a record cannot set it for itself. |
+| `hybridRequiredFrom` | No | An ISO 8601 UTC timestamp ending in `Z`. A record whose `createdAt` is at or after this instant must have a valid hybrid envelope. If omitted or `null`, no cutover applies, and a record with no hybrid envelope is refused unless `allowLegacyOnly` is `true`. The file's owner sets it; a record cannot set it for itself. |
+| `allowLegacyOnly` | No | A boolean, `false` when omitted. Set it to `true` only if you accept records that have no hybrid envelope and no cutover applies. When `hybridRequiredFrom` is set, the cutover alone decides and this field has no effect. |
 
 A file that breaks any of these rules is rejected as a read error (exit code 2).
 
@@ -123,3 +124,10 @@ For a signature to be accepted, all of these must hold:
 - The PEM key's type matches the algorithm.
 
 A record whose `createdAt` is at or after the trust file's `hybridRequiredFrom` is also invalid unless it has a valid hybrid envelope. The instant itself is included in the requirement.
+
+A record with no hybrid envelope (no `signatures` array) is accepted only in these two cases:
+
+- a `hybridRequiredFrom` is set and the record was created before it;
+- no `hybridRequiredFrom` is set and `allowLegacyOnly` is `true`.
+
+In every other case it is invalid. The error names the missing envelope and the two settings that would accept it.

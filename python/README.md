@@ -12,7 +12,7 @@ This is the Python counterpart of the Node verifier in the repository root. It c
 - The Ed25519 signature, over the legacy message, from a key in your trust file.
 - Ed25519 signatures in a hybrid `signatures` array, and the whole-record (schema version 3) message.
 - Trust rules: the key's fingerprint, its validity window, and the `compromised` flag.
-- The `hybridRequiredFrom` cutover, when the trust file sets one.
+- The `hybridRequiredFrom` cutover, when the trust file sets one. A record with no hybrid envelope is refused unless it predates the cutover, or the trust file sets `"allowLegacyOnly": true` (and no cutover is set).
 
 **Not checked: ML-DSA-65 (`dilithium3`) signatures.** The `cryptography` package does not provide ML-DSA. A record with a `dilithium3` entry is reported as invalid, so this verifier never accepts a hybrid record on its Ed25519 part alone. To check the ML-DSA-65 part, use the Node verifier (`@parmana/verifier`) on Node 24 or later with OpenSSL 3.5 or later.
 

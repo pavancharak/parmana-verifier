@@ -122,6 +122,15 @@ A key is used only if all of these hold:
 
 A compromised key is rejected whatever the timestamp, so signatures it made stay void.
 
+### Records with no hybrid envelope
+
+A record with no `signatures` array is a legacy-only record. The verifier refuses it by default. It is accepted only when:
+
+- the trust file sets `hybridRequiredFrom` and the record was created before that instant; or
+- the trust file sets `"allowLegacyOnly": true` and does not set `hybridRequiredFrom`.
+
+Otherwise the result is invalid, and the error says which setting would accept it. A record created at or after `hybridRequiredFrom` always needs a valid hybrid envelope, whatever `allowLegacyOnly` says. See [docs/FORMAT.md](docs/FORMAT.md#trust-set-trustjson).
+
 ## Examples
 
 Run every example with:
@@ -159,7 +168,7 @@ The suite covers the legacy signature and hash, hybrid signatures, schema versio
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
 - For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
 - For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check that `coverage` is `full` when that matters.
-- A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this.
+- A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this. With no cutover set, a record with no hybrid envelope is refused unless the trust file sets `allowLegacyOnly` to `true` (see "Records with no hybrid envelope" above).
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.

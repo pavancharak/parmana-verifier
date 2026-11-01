@@ -148,7 +148,7 @@ def key():
 def test_raw_signature_verifies(key):
     trust = trust_map(trust_entry("main", key))
     record = signed_record(key, "main", {"a": 1})
-    result = verify_execution_trust_record(record, trust)
+    result = verify_execution_trust_record(record, trust, allow_legacy_only=True)
     assert result == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
 
 
@@ -156,7 +156,7 @@ def test_large_message_accepts_commitment_signature(key):
     trust = trust_map(trust_entry("main", key))
     body = {"items": ["x" * 200] * 40}
     record = signed_record(key, "main", body, mode="commitment")
-    assert verify_execution_trust_record(record, trust)["valid"] is True
+    assert verify_execution_trust_record(record, trust, allow_legacy_only=True)["valid"] is True
 
 
 def test_small_message_rejects_commitment_signature(key):
@@ -269,7 +269,7 @@ def run_cli(*args):
 
 def test_cli_exit_codes(tmp_path, key):
     trust_path = tmp_path / "trust.json"
-    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)]}))
+    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)], "allowLegacyOnly": True}))
     good = tmp_path / "good.json"
     good.write_text(json.dumps(signed_record(key, "main", {"a": 1})))
     bad = tmp_path / "bad.json"
@@ -283,9 +283,32 @@ def test_cli_exit_codes(tmp_path, key):
 
 def test_cli_prints_one_json_line(tmp_path, key):
     trust_path = tmp_path / "trust.json"
-    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)]}))
+    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)], "allowLegacyOnly": True}))
     good = tmp_path / "good.json"
     good.write_text(json.dumps(signed_record(key, "main", {"a": 1})))
     output = run_cli(str(good), str(trust_path)).stdout
     assert json.loads(output) == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
     assert output.count("\n") == 1
+
+
+def test_legacy_only_record_refused_by_default(key):
+    trust = trust_map(trust_entry("main", key))
+    record = signed_record(key, "main", {"a": 1})
+    result = verify_execution_trust_record(record, trust)
+    assert result["valid"] is False
+    assert "no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly" in result["errors"][-1]
+
+
+def test_legacy_only_record_after_cutover_refused_even_with_allow(key):
+    trust = trust_map(trust_entry("main", key))
+    record = signed_record(key, "main", {"a": 1}, created="2026-06-01T12:00:00Z")
+    result = verify_execution_trust_record(
+        record, trust, "2026-01-01T00:00:00.000Z", allow_legacy_only=True
+    )
+    assert result["valid"] is False
+    assert "hybridRequiredFrom" in result["errors"][-1]
+
+
+def test_trust_policy_rejects_non_boolean_allow_legacy_only(key):
+    with pytest.raises(ValueError, match="allowLegacyOnly must be true or false"):
+        parse_trust_policy({"keys": [trust_entry("main", key)], "allowLegacyOnly": "yes"})

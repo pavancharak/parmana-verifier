@@ -58,7 +58,9 @@ def main(argv=None):
         print(f"read error: {error}", file=sys.stderr)
         return 2
 
-    result = verify_execution_trust_record(proof, policy.keys, policy.hybrid_required_from)
+    result = verify_execution_trust_record(
+        proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only
+    )
     print(result_to_json(result))
 
     return 0 if result["valid"] else 1
