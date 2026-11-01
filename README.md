@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana-verifier/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![Node](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](package.json)
 
-Every action stays within what your business allowed, and Parmana keeps proof of what happened. This verifier checks that proof using only a file and the keys you trust. No network access, no account, no dependencies.
+**Parmana makes sure AI agents take only the actions your business has approved, and keeps signed proof of what they did.** This verifier checks that proof using only a record file and the keys you trust. It needs no network access, no account and no dependencies.
 
-Parmana signs an **Execution Trust Record** for every action an agent takes through it. The record says what was authorized, what ran, and what the outcome was, and it is signed with keys. This verifier checks that a record has not been changed and that it was signed by keys you chose to trust. It does not ask Parmana's servers anything, so you do not have to trust them to check a record.
+Parmana signs an **Execution Trust Record** for every action an agent takes through it. The record says what was authorized, what ran, and what the outcome was. This verifier checks that a record has not been changed and that it was signed by keys you chose to trust. It does not contact Parmana's servers, so you do not have to trust them to check a record.
 
 The records come from [Parmana](https://github.com/pavancharak/parmana-core), which signs them. The verifier works without the rest of Parmana: it needs only a record and a trust file.
 
