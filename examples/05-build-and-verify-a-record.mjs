@@ -54,12 +54,12 @@ const trust = parseTrustSet({
     },
   ],
 });
-const result = verifyExecutionTrustRecord(record, trust);
+const result = verifyExecutionTrustRecord(record, trust, { allowLegacyOnly: true });
 console.log(result.valid ? "VALID" : `INVALID: ${result.errors.join(" ")}`);
 
 heading("5. Change one field");
 record.transaction.amount = 99999;
-const after = verifyExecutionTrustRecord(record, trust);
+const after = verifyExecutionTrustRecord(record, trust, { allowLegacyOnly: true });
 console.log(after.valid ? "VALID (unexpected)" : "INVALID, as expected: the hash no longer matches.");
 
 process.exitCode = result.valid && !after.valid ? 0 : 1;

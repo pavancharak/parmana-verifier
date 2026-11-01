@@ -128,11 +128,13 @@ def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None,
     predates_cutover = cutover_given and not _is_at_or_after_cutover(record.get("createdAt"), hybrid_required_from)
     legacy_only_allowed = predates_cutover if cutover_given else allow_legacy_only is True
 
-    if "hybridSignatures" not in checks and not legacy_only_allowed:
-        if cutover_given:
-            errors.append(f"record created at or after hybridRequiredFrom ({hybrid_required_from}) has no valid hybrid envelope.")
-        else:
-            errors.append("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.")
+    # A record created at or after the cutover needs a valid envelope, whether it
+    # is missing or present but invalid.
+    at_or_after_cutover = cutover_given and not predates_cutover
+    if at_or_after_cutover and checks.get("hybridSignatures") is not True:
+        errors.append(f"record created at or after hybridRequiredFrom ({hybrid_required_from}) has no valid hybrid envelope.")
+    elif "hybridSignatures" not in checks and not legacy_only_allowed:
+        errors.append("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.")
 
     envelope_ok = legacy_only_allowed if "hybridSignatures" not in checks else checks["hybridSignatures"] is True
 

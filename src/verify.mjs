@@ -125,12 +125,13 @@ export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
   // With a cutover, the cutover alone decides; allowLegacyOnly applies only when none is given.
   const legacyOnlyAllowed = cutoverGiven ? predatesCutover : options.allowLegacyOnly === true;
 
-  if (checks.hybridSignatures === undefined && !legacyOnlyAllowed) {
-    errors.push(
-      cutoverGiven
-        ? `record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`
-        : "record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.",
-    );
+  // A record created at or after the cutover needs a valid envelope, whether it
+  // is missing or present but invalid.
+  const atOrAfterCutover = cutoverGiven && !predatesCutover;
+  if (atOrAfterCutover && checks.hybridSignatures !== true) {
+    errors.push(`record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`);
+  } else if (checks.hybridSignatures === undefined && !legacyOnlyAllowed) {
+    errors.push("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.");
   }
 
   const envelopeOk = checks.hybridSignatures === undefined ? legacyOnlyAllowed : checks.hybridSignatures;
