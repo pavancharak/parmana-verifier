@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.6.3] - 2026-11-01
 
 - **Breaking:** a record with no hybrid envelope is refused by default. Before, it passed whenever its hash and legacy signature verified, even with no `hybridRequiredFrom` set, so a stripped envelope was accepted. Now it is accepted only if it predates a `hybridRequiredFrom` cutover, or the trust file sets `"allowLegacyOnly": true` and no cutover is set. Migration: if you verify legacy-only records and have no cutover, add `"allowLegacyOnly": true` to your trust file.
 - Adds the optional `allowLegacyOnly` trust-file field (a boolean, `false` when omitted), and the matching `allowLegacyOnly` option on `verifyExecutionTrustRecord`.
