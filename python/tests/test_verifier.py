@@ -75,12 +75,13 @@ def test_tampered_record_fails_hash_and_signature():
     assert result["checks"]["signature"] is False
 
 
-def test_v2_record_ed25519_part_verifies_and_hybrid_is_reported_unsupported():
+def test_v2_hybrid_record_verifies_both_entries_as_the_node_verifier_does():
+    # Node verifies this vector with every check passing; so must Python.
     trust = parse_trust_policy(load("trust.json"))
     result = verify_execution_trust_record(load("record-explicit-v2.json"), trust.keys)
-    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": False}
-    assert result["valid"] is False
-    assert any("dilithium3" in error for error in result["errors"])
+    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": True}
+    assert result["valid"] is True
+    assert result["errors"] == []
 
 
 def test_whole_record_v3_ed25519_entry_verifies_over_the_v3_message():
@@ -93,6 +94,61 @@ def test_whole_record_v3_ed25519_entry_verifies_over_the_v3_message():
     ed_entry = next(entry for entry in record["signatures"] if entry["algorithm"] == "ed25519")
     assert ed_entry["keyId"] in trust.keys
     assert hybrid_message(record, 3)
+
+
+def test_whole_record_v3_vector_verifies_with_full_coverage():
+    record = load("record-whole-record-v3.json")
+    trust = parse_trust_policy(load("trust-whole-record.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["valid"] is True, result["errors"]
+    assert result["coverage"] == "full"
+
+
+def test_whole_record_v3_tampered_updated_at_fails_the_dilithium3_entry():
+    # updatedAt is covered by version 3 only; changing it must fail the ML-DSA-65 entry.
+    record = load("record-whole-record-v3-updated-at.json")
+    trust = parse_trust_policy(load("trust-whole-record.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["valid"] is False
+    assert result["checks"]["trustRecordHash"] is True
+    assert result["checks"]["hybridSignatures"] is False
+    assert result["coverage"] == "legacy"
+
+
+def test_server_built_v3_record_verifies_with_full_coverage():
+    # Built by the server's BusinessTrustRecordBuilder with CRYPTO_MODE=hybrid and
+    # HYBRID_SCHEMA_VERSION=3, round-tripped through JSON. Test keys, not production keys.
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    record = json.loads((fixtures / "server-built-v3-record.json").read_text(encoding="utf-8"))
+    trust = parse_trust_policy(json.loads((fixtures / "server-built-v3-trust.json").read_text(encoding="utf-8")))
+    result = verify_execution_trust_record(record, trust.keys)
+    assert result["valid"] is True, result["errors"]
+    assert result["coverage"] == "full"
+    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": True}
+
+
+def test_server_built_v3_record_changed_after_storage_is_rejected():
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    record = json.loads((fixtures / "server-built-v3-record.json").read_text(encoding="utf-8"))
+    trust = parse_trust_policy(json.loads((fixtures / "server-built-v3-trust.json").read_text(encoding="utf-8")))
+    record["updatedAt"] = "2026-02-01T00:00:00.000Z"
+    result = verify_execution_trust_record(record, trust.keys)
+    assert result["valid"] is False
+    assert result["checks"]["hybridSignatures"] is False
+
+
+def test_dilithium3_entry_with_an_ed25519_key_is_rejected():
+    # A key pinned as dilithium3 must actually be an ML-DSA-65 key, not an Ed25519 key.
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    record = json.loads((fixtures / "server-built-v3-record.json").read_text(encoding="utf-8"))
+    trust_doc = json.loads((fixtures / "server-built-v3-trust.json").read_text(encoding="utf-8"))
+    ed_pem = trust_doc["keys"][0]["publicKeyPem"]
+    trust_doc["keys"][1]["publicKeyPem"] = ed_pem
+    trust_doc["keys"][1]["fingerprint"] = key_fingerprint(ed_pem)
+    trust = parse_trust_policy(trust_doc)
+    result = verify_execution_trust_record(record, trust.keys)
+    assert result["valid"] is False
+    assert any("expected dilithium3" in error for error in result["errors"])
 
 
 # Canonical serialization, matching ECMAScript Number and JSON.stringify.
