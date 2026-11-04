@@ -18,3 +18,5 @@
 These two were signed with a fixed test key (bytes `0x00` to `0x1f`), generated with the Python verifier's canonicalization.
 
 The records were signed with Parmana's own signing code, so they cross-check this verifier against that code. The signing code's offline verifier gives the same results for each record.
+
+- `agentrust-refund-approved.json` and `agentrust-trust.json`: the approved refund record (fixture 01) from the AgenTrust `parmana-server` integration, copied unedited, with its trust set. The key is a test key generated for that integration's run and is not chained to any trusted issuer. The record has no hybrid envelope, so the trust set sets `allowLegacyOnly`; `coverage` is `legacy`. Valid. Checked by `test/agentrust-fixture.test.mjs`.

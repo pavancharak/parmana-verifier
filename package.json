@@ -14,7 +14,7 @@
     "NOTICE"
   ],
   "scripts": {
-    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs test/whole-record.test.mjs",
+    "test": "node --test test/verify.test.mjs test/hybrid.test.mjs test/trust.test.mjs test/vectors.test.mjs test/whole-record.test.mjs test/agentrust-fixture.test.mjs",
     "examples": "node examples/run-all.mjs"
   },
   "engines": {
