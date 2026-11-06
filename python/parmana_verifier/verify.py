@@ -20,10 +20,10 @@ Supported algorithms:
               commitment: the prefix below followed by the SHA-512 digest of
               the canonical bytes. A raw signature is also accepted. A
               commitment over a small message is rejected.
-  dilithium3  ML-DSA-65 keys. This verifier does not check them, because the
-              cryptography package does not provide ML-DSA. Such an entry is
-              reported as a failed check, so a hybrid record is never accepted
-              on its Ed25519 part alone.
+  dilithium3  ML-DSA-65 keys, verified over the same message as the ed25519
+              entry. There is no commitment form. Needs cryptography 48.0.0 or
+              later. A hybrid record still needs both entries to verify, so
+              one valid part is never enough.
 
 The verifier reads no environment variables and private keys, and makes no
 network calls.
@@ -37,6 +37,7 @@ from dataclasses import dataclass
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PublicKey
 from cryptography.hazmat.primitives import serialization
 
 from .canonical import canonical_bytes
@@ -216,13 +217,6 @@ def _verify_entry(entry, message, context, errors):
         errors.append(f'createdAt {context.created_at} is outside the validity window of keyId "{key_id}".')
         return False
 
-    if algorithm_name == "dilithium3":
-        errors.append(
-            "algorithm dilithium3 (ML-DSA-65) is not supported by the Python verifier; "
-            "use the Node verifier (@parmana/verifier) on Node 24+ with OpenSSL 3.5+."
-        )
-        return False
-
     try:
         public_key = serialization.load_pem_public_key(trusted.public_key_pem.encode("utf-8"))
     except (ValueError, TypeError):
@@ -233,8 +227,9 @@ def _verify_entry(entry, message, context, errors):
         errors.append(f'public key for keyId "{key_id}" does not match its pinned fingerprint.')
         return False
 
-    if not isinstance(public_key, Ed25519PublicKey):
-        errors.append(f'public key for keyId "{key_id}" has type {type(public_key).__name__}, expected ed25519.')
+    expected_key_type = MLDSA65PublicKey if algorithm_name == "dilithium3" else Ed25519PublicKey
+    if not isinstance(public_key, expected_key_type):
+        errors.append(f'public key for keyId "{key_id}" has type {type(public_key).__name__}, expected {algorithm_name}.')
         return False
 
     try:
