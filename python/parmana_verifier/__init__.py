@@ -2,8 +2,8 @@
 
 Python counterpart to the Node verifier in the repository root. It checks the
 record hash and Ed25519 signatures against the keys you pin in a trust file,
-and makes no network calls. It does not check ML-DSA-65 (dilithium3)
-signatures; see README.md.
+and makes no network calls. It checks ML-DSA-65 (dilithium3) signatures too,
+with cryptography 48.0.0 or later; see README.md.
 """
 
 from .canonical import canonical_bytes

@@ -75,12 +75,29 @@ def test_tampered_record_fails_hash_and_signature():
     assert result["checks"]["signature"] is False
 
 
-def test_v2_record_ed25519_part_verifies_and_hybrid_is_reported_unsupported():
+def test_v2_hybrid_record_verifies_both_entries_including_ml_dsa():
+    # The Node verifier's vector. Both the ed25519 and the dilithium3 (ML-DSA-65) entries must verify.
     trust = parse_trust_policy(load("trust.json"))
     result = verify_execution_trust_record(load("record-explicit-v2.json"), trust.keys)
-    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": False}
+    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": True}
+    assert result["valid"] is True
+    assert not any("dilithium3" in error for error in result["errors"])
+
+
+def test_tampered_ml_dsa_signature_fails_the_hybrid_check():
+    trust = parse_trust_policy(load("trust.json"))
+    record = load("record-explicit-v2.json")
+    entry = next(item for item in record["signatures"] if item["algorithm"] == "dilithium3")
+    value = entry["signature"] if "signature" in entry else entry["value"]
+    flipped = ("A" if value[0] != "A" else "B") + value[1:]
+    if "signature" in entry:
+        entry["signature"] = flipped
+    else:
+        entry["value"] = flipped
+    result = verify_execution_trust_record(record, trust.keys)
+    assert result["checks"]["hybridSignatures"] is False
     assert result["valid"] is False
-    assert any("dilithium3" in error for error in result["errors"])
+    assert any("signature verification failed" in error and "dilithium3" in error for error in result["errors"])
 
 
 def test_whole_record_v3_ed25519_entry_verifies_over_the_v3_message():
