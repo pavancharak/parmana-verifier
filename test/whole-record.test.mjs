@@ -50,6 +50,18 @@ test("a schema version 3 vector verifies with full coverage", { skip: SKIP }, ()
   assert.equal(result.coverage, "full");
 });
 
+test("a schema version 3 record with a field added after signing is rejected", { skip: SKIP }, () => {
+  const trust = parseTrustPolicy(load("trust-whole-record.json")).keys;
+  const record = load("record-whole-record-v3.json");
+  // A field the signer never saw. Under schema version 3 every top-level field is
+  // covered, so an addition must fail even though the legacy hash is untouched.
+  const result = verifyExecutionTrustRecord({ ...record, addedAfterSigning: "x" }, trust);
+
+  assert.equal(result.valid, false);
+  assert.equal(result.checks.hybridSignatures, false);
+  assert.equal(result.coverage, "legacy");
+});
+
 test("a schema version 3 record with a changed updatedAt is rejected, though the hash still matches", { skip: SKIP }, () => {
   const trust = parseTrustPolicy(load("trust-whole-record.json")).keys;
   const result = verifyExecutionTrustRecord(load("record-whole-record-v3-updated-at.json"), trust);
