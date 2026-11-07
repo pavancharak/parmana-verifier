@@ -11,7 +11,11 @@ import { join } from "node:path";
 
 const BIN = fileURLToPath(new URL("../bin/parmana-verify.mjs", import.meta.url));
 const dir = mkdtempSync(join(tmpdir(), "parmana-cli-example-"));
-const trustPath = new URL("../test/vectors/trust.json", import.meta.url);
+// The vector trust file predates the schema version 2 opt-in. Copy it into the
+// temporary directory with allowLegacyV2 set, so the example can verify the
+// version 2 record it demonstrates.
+const trustPath = join(dir, "trust.json");
+writeFileSync(trustPath, JSON.stringify({ ...loadVector("trust.json"), allowLegacyV2: true }));
 
 function run(args) {
   return spawnSync(process.execPath, [BIN, ...args], { encoding: "utf8" });
@@ -23,12 +27,12 @@ writeFileSync(proofFile, JSON.stringify(loadVector("record-implicit-v2.json")));
 writeFileSync(tamperedFile, JSON.stringify(loadVector("record-tampered-amount.json")));
 
 heading("1. Verify a valid record");
-const valid = run([proofFile, fileURLToPath(trustPath)]);
+const valid = run([proofFile, trustPath]);
 console.log(`exit ${valid.status}`);
 console.log(valid.stdout.trim());
 
 heading("2. Verify a tampered record");
-const tampered = run([tamperedFile, fileURLToPath(trustPath)]);
+const tampered = run([tamperedFile, trustPath]);
 console.log(`exit ${tampered.status}`);
 console.log(tampered.stdout.trim());
 

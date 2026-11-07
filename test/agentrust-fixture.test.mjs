@@ -10,7 +10,9 @@ import { parseTrustPolicy } from "../src/trust.mjs";
 const dir = fileURLToPath(new URL("./vectors/", import.meta.url));
 const load = (name) => JSON.parse(readFileSync(dir + name, "utf8"));
 const trust = parseTrustPolicy(load("agentrust-trust.json"));
-const options = { hybridRequiredFrom: trust.hybridRequiredFrom, allowLegacyOnly: trust.allowLegacyOnly };
+// This external vector is a schema version 2 record. Opt in explicitly: the
+// trust file belongs to AgenTrust and is not edited here.
+const options = { hybridRequiredFrom: trust.hybridRequiredFrom, allowLegacyOnly: trust.allowLegacyOnly, allowLegacyV2: true };
 
 test("agentrust fixture: approved refund record verifies with its pinned key", () => {
   const result = verifyExecutionTrustRecord(load("agentrust-refund-approved.json"), trust.keys, options);

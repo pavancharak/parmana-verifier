@@ -56,6 +56,14 @@ export function parseTrustPolicy(document) {
 
   const allowLegacyOnly = document.allowLegacyOnly === true;
 
+  // Off by default: a schema version 2 record (or one with no schemaVersion)
+  // is refused unless the trust file explicitly allows it.
+  if (document.allowLegacyV2 !== undefined && typeof document.allowLegacyV2 !== "boolean") {
+    throw new Error('allowLegacyV2 must be true or false');
+  }
+
+  const allowLegacyV2 = document.allowLegacyV2 === true;
+
   const trustKeys = new Map();
 
   for (const [index, entry] of document.keys.entries()) {
@@ -109,5 +117,5 @@ export function parseTrustPolicy(document) {
     });
   }
 
-  return { keys: trustKeys, hybridRequiredFrom, allowLegacyOnly };
+  return { keys: trustKeys, hybridRequiredFrom, allowLegacyOnly, allowLegacyV2 };
 }

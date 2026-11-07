@@ -13,7 +13,7 @@ const { keys } = parseTrustPolicy(loadVector("trust-whole-record.json"));
 
 function check(cutover) {
   const policy = parseTrustPolicy({ keys: [...keys.values()], hybridRequiredFrom: cutover });
-  return verifyExecutionTrustRecord(record, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined });
+  return verifyExecutionTrustRecord(record, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyV2: true });
 }
 
 heading("1. Cutover before the record was created");
@@ -28,7 +28,7 @@ console.log(`cutover reason given: ${future.errors.some((e) => e.includes(CUTOVE
 console.log(`other reasons: ${future.errors.filter((e) => !e.includes(CUTOVER_REASON)).length}`);
 
 heading("3. No cutover set");
-const none = verifyExecutionTrustRecord(record, keys);
+const none = verifyExecutionTrustRecord(record, keys, { allowLegacyV2: true });
 console.log(`${decision(none.valid)}  no cutover in the trust file`);
 console.log(`errors identical to case 2: ${JSON.stringify(none.errors) === JSON.stringify(future.errors.filter((e) => !e.includes(CUTOVER_REASON)))}`);
 

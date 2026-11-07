@@ -12,13 +12,13 @@ const trust = parseTrustSet(loadVector("trust.json"));
 const original = loadVector("record-implicit-v2.json");
 
 heading("1. The original record");
-const before = verifyExecutionTrustRecord(original, trust);
+const before = verifyExecutionTrustRecord(original, trust, { allowLegacyV2: true });
 console.log(`${before.valid ? "VALID" : "INVALID"}  transaction.amount = ${original.transaction.amount}`);
 
 heading("2. Change the amount, keep the stored hash and signature");
 const edited = structuredClone(original);
 edited.transaction.amount = 999999;
-const afterEdit = verifyExecutionTrustRecord(edited, trust);
+const afterEdit = verifyExecutionTrustRecord(edited, trust, { allowLegacyV2: true });
 console.log(`${caught(afterEdit.checks.trustRecordHash)}  trustRecordHash`);
 console.log(`${caught(afterEdit.checks.signature)}  signature`);
 console.log(`${caught(afterEdit.checks.hybridSignatures)}  hybrid signatures`);
@@ -32,7 +32,7 @@ const rehashed = structuredClone(edited);
 rehashed.trustRecordHash = createHash("sha256")
   .update(canonicalBytes(canonicalTrustRecord(rehashed)))
   .digest("hex");
-const afterRehash = verifyExecutionTrustRecord(rehashed, trust);
+const afterRehash = verifyExecutionTrustRecord(rehashed, trust, { allowLegacyV2: true });
 console.log(`${caught(afterRehash.checks.trustRecordHash)}  trustRecordHash (recomputed by the attacker)`);
 console.log(`${caught(afterRehash.checks.signature)}  signature (the attacker cannot produce this)`);
 console.log(`Result: ${afterRehash.valid ? "VALID" : "INVALID"}`);

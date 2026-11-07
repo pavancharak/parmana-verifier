@@ -23,31 +23,31 @@ const mlDsaSupported = (() => {
 const HYBRID = mlDsaSupported ? {} : { skip: "needs Node 24+ with OpenSSL 3.5+ (ML-DSA-65)" };
 
 test("vector: hybrid record without schemaVersion verifies", HYBRID, () => {
-  const result = verifyExecutionTrustRecord(load("record-implicit-v2.json"), trustKeys);
+  const result = verifyExecutionTrustRecord(load("record-implicit-v2.json"), trustKeys, { allowLegacyV2: true });
   assert.equal(result.valid, true, result.errors.join("; "));
   assert.equal(result.checks.hybridSignatures, true);
 });
 
 test("vector: hybrid record with schemaVersion 2 verifies", HYBRID, () => {
-  const result = verifyExecutionTrustRecord(load("record-explicit-v2.json"), trustKeys);
+  const result = verifyExecutionTrustRecord(load("record-explicit-v2.json"), trustKeys, { allowLegacyV2: true });
   assert.equal(result.valid, true, result.errors.join("; "));
 });
 
 test("vector: changed amount is rejected by the hash", HYBRID, () => {
-  const result = verifyExecutionTrustRecord(load("record-tampered-amount.json"), trustKeys);
+  const result = verifyExecutionTrustRecord(load("record-tampered-amount.json"), trustKeys, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.equal(result.checks.trustRecordHash, false);
 });
 
 test("vector: changed schemaVersion is rejected by the hybrid check", HYBRID, () => {
-  const result = verifyExecutionTrustRecord(load("record-schema-v3.json"), trustKeys);
+  const result = verifyExecutionTrustRecord(load("record-schema-v3.json"), trustKeys, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.equal(result.checks.trustRecordHash, true);
   assert.equal(result.checks.hybridSignatures, false);
 });
 
 test("vector: a single-entry hybrid envelope is rejected", HYBRID, () => {
-  const result = verifyExecutionTrustRecord(load("record-single-entry.json"), trustKeys);
+  const result = verifyExecutionTrustRecord(load("record-single-entry.json"), trustKeys, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /need at least 2/);
 });

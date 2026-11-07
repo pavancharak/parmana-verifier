@@ -82,7 +82,7 @@ def hybrid_message(record, schema_version):
     return canonical_bytes({**canonical_trust_record(record), "schemaVersion": schema_version})
 
 
-def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None, allow_legacy_only=False):
+def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None, allow_legacy_only=False, allow_legacy_v2=False):
     """Verify a record against a trust set (a dict keyId -> TrustEntry).
 
     Returns a dict with valid, coverage ("full" or "legacy"), errors and checks,
@@ -92,6 +92,21 @@ def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None,
 
     if not isinstance(record, dict):
         return {"valid": False, "coverage": "legacy", "errors": ["record must be a JSON object"], "checks": {}}
+
+    # Schema version 2 signs only seven top-level fields. A record with no
+    # schemaVersion is treated as version 2. Both are refused unless the caller
+    # opts in with allow_legacy_v2, so a partially covered record is never
+    # accepted by default.
+    declared_version = record.get("schemaVersion", DEFAULT_SCHEMA_VERSION)
+    if declared_version == 2 and not allow_legacy_v2:
+        return {
+            "valid": False,
+            "coverage": "legacy",
+            "errors": [
+                "schemaVersion 2 (or no schemaVersion) covers only seven top-level fields and is refused by default: set allow_legacy_v2 to accept it, or re-issue the record as schemaVersion 3."
+            ],
+            "checks": {},
+        }
 
     legacy_message = canonical_bytes(canonical_trust_record(record))
     expected_hash = hashlib.sha256(legacy_message).hexdigest()

@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- **Breaking:** a record with no `schemaVersion`, or with `schemaVersion` 2, is refused by default in both the Node and Python verifiers. Schema version 2 signs only seven top-level fields, so a record outside those fields could be altered without detection. Migration: re-issue the record as schemaVersion 3, or set `"allowLegacyV2": true` in the trust file (Node: `allowLegacyV2` option; Python: `allow_legacy_v2`). The CLI reads the same trust-file field.
+- Adds the optional `allowLegacyV2` trust-file field (a boolean, `false` when omitted), validated in both parsers.
+- Test vectors and examples that use schema version 2 now opt in explicitly. The AgenTrust cross-check vector opts in in its test, since its trust file is external to this repository.
+- Version number: not changed here. The release version is a decision for the owner, because the package versions are aligned with the Parmana SDK packages.
+
 ## [1.6.3] - 2026-11-01
 
 - **Breaking:** a record with no hybrid envelope is refused by default. Before, it passed whenever its hash and legacy signature verified, even with no `hybridRequiredFrom` set, so a stripped envelope was accepted. Now it is accepted only if it predates a `hybridRequiredFrom` cutover, or the trust file sets `"allowLegacyOnly": true` and no cutover is set. Migration: if you verify legacy-only records and have no cutover, add `"allowLegacyOnly": true` to your trust file.

@@ -38,6 +38,7 @@ class TrustPolicy:
     keys: dict = field(default_factory=dict)
     hybrid_required_from: Optional[str] = None
     allow_legacy_only: bool = False
+    allow_legacy_v2: bool = False
 
 
 def key_fingerprint(public_key_pem):
@@ -68,6 +69,10 @@ def parse_trust_policy(document):
 
     # Off by default: a record with no hybrid envelope is refused unless the
     # trust file explicitly allows legacy-only records.
+    allow_legacy_v2 = document.get("allowLegacyV2", False)
+    if not isinstance(allow_legacy_v2, bool):
+        raise ValueError("allowLegacyV2 must be true or false")
+
     allow_legacy_only = document.get("allowLegacyOnly", False)
     if not isinstance(allow_legacy_only, bool):
         raise ValueError("allowLegacyOnly must be true or false")
@@ -120,4 +125,4 @@ def parse_trust_policy(document):
             compromised=compromised,
         )
 
-    return TrustPolicy(keys=keys, hybrid_required_from=hybrid_required_from, allow_legacy_only=allow_legacy_only)
+    return TrustPolicy(keys=keys, hybrid_required_from=hybrid_required_from, allow_legacy_only=allow_legacy_only, allow_legacy_v2=allow_legacy_v2)

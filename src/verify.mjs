@@ -90,6 +90,22 @@ export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
     return { valid: false, coverage: "legacy", errors: ["record must be a JSON object"], checks: {} };
   }
 
+  // Schema version 2 signs only seven top-level fields. A record with no
+  // schemaVersion is treated as version 2. Both are refused unless the caller
+  // opts in with allowLegacyV2, so a partially covered record is never
+  // accepted by default.
+  const declaredVersion = record.schemaVersion ?? DEFAULT_SCHEMA_VERSION;
+  if (declaredVersion === 2 && options.allowLegacyV2 !== true) {
+    return {
+      valid: false,
+      coverage: "legacy",
+      errors: [
+        "schemaVersion 2 (or no schemaVersion) covers only seven top-level fields and is refused by default: set allowLegacyV2 to accept it, or re-issue the record as schemaVersion 3.",
+      ],
+      checks: {},
+    };
+  }
+
   const legacyMessage = canonicalBytes(canonicalTrustRecord(record));
   const expectedHash = createHash("sha256").update(legacyMessage).digest("hex");
   const hashValid = expectedHash === record.trustRecordHash;
