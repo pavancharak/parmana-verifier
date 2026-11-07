@@ -9,6 +9,7 @@
 // The trust set is supplied by the caller. The verifier never fetches keys.
 
 import { createHash, createPublicKey } from "node:crypto";
+import { parseTimestamp } from "./timestamp.mjs";
 
 export const ALGORITHM_NAMES = ["ed25519", "dilithium3"];
 
@@ -40,7 +41,7 @@ export function parseTrustPolicy(document) {
   let hybridRequiredFrom = null;
 
   if (document.hybridRequiredFrom !== undefined && document.hybridRequiredFrom !== null) {
-    if (typeof document.hybridRequiredFrom !== "string" || !/Z$/.test(document.hybridRequiredFrom) || Number.isNaN(Date.parse(document.hybridRequiredFrom))) {
+    if (typeof document.hybridRequiredFrom !== "string" || !/Z$/.test(document.hybridRequiredFrom) || Number.isNaN(parseTimestamp(document.hybridRequiredFrom))) {
       throw new Error('hybridRequiredFrom must be an ISO-8601 UTC timestamp ending in "Z"');
     }
 
@@ -84,12 +85,12 @@ export function parseTrustPolicy(document) {
       throw new Error(`${at}.fingerprint must be "sha256:" followed by 64 lowercase hex digits`);
     }
 
-    if (typeof entry.validFrom !== "string" || Number.isNaN(Date.parse(entry.validFrom))) {
+    if (typeof entry.validFrom !== "string" || Number.isNaN(parseTimestamp(entry.validFrom))) {
       throw new Error(`${at}.validFrom must be an ISO timestamp`);
     }
 
     if (entry.validUntil !== undefined && entry.validUntil !== null &&
-        (typeof entry.validUntil !== "string" || Number.isNaN(Date.parse(entry.validUntil)))) {
+        (typeof entry.validUntil !== "string" || Number.isNaN(parseTimestamp(entry.validUntil)))) {
       throw new Error(`${at}.validUntil must be an ISO timestamp or null`);
     }
 

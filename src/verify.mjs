@@ -39,6 +39,7 @@ import {
 } from "node:crypto";
 import { canonicalBytes } from "./canonical.mjs";
 import { fingerprintOfKey } from "./trust.mjs";
+import { parseTimestamp } from "./timestamp.mjs";
 
 const ALGORITHMS = {
   ed25519: { keyType: "ed25519", commitment: true },
@@ -151,9 +152,9 @@ function isAtOrAfterCutover(createdAt, hybridRequiredFrom) {
     return false;
   }
 
-  const created = Date.parse(createdAt);
+  const created = parseTimestamp(createdAt);
 
-  return !Number.isNaN(created) && created >= Date.parse(hybridRequiredFrom);
+  return !Number.isNaN(created) && created >= parseTimestamp(hybridRequiredFrom);
 }
 
 function verifyLegacySignature(signature, message, context, errors) {
@@ -269,17 +270,17 @@ function verifyEntry(entry, message, context, errors) {
 }
 
 function withinValidityWindow(trusted, createdAt) {
-  const at = Date.parse(createdAt);
+  const at = parseTimestamp(createdAt);
 
   if (Number.isNaN(at)) {
     return false;
   }
 
-  if (at < Date.parse(trusted.validFrom)) {
+  if (at < parseTimestamp(trusted.validFrom)) {
     return false;
   }
 
-  return trusted.validUntil === null || at < Date.parse(trusted.validUntil);
+  return trusted.validUntil === null || at < parseTimestamp(trusted.validUntil);
 }
 
 function commitment(message) {
