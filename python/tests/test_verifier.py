@@ -112,6 +112,19 @@ def test_whole_record_v3_ed25519_entry_verifies_over_the_v3_message():
     assert hybrid_message(record, 3)
 
 
+def test_whole_record_v3_with_a_field_added_after_signing_is_rejected():
+    # Under schema version 3 every top-level field is covered, so a field the
+    # signer never saw must fail the hybrid envelope, though the legacy hash
+    # and the legacy signature still match. Mirrors test/whole-record.test.mjs.
+    record = load("record-whole-record-v3.json")
+    trust = parse_trust_policy(load("trust-whole-record.json"))
+    tampered = {**record, "addedAfterSigning": "x"}
+    result = verify_execution_trust_record(tampered, trust.keys, trust.hybrid_required_from)
+    assert result["valid"] is False
+    assert result["checks"]["hybridSignatures"] is False
+    assert result["coverage"] == "legacy"
+
+
 # Canonical serialization, matching ECMAScript Number and JSON.stringify.
 
 @pytest.mark.parametrize(
