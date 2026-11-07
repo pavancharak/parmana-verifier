@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.0.0] - 2026-11-07
 
 - **Breaking:** a record with no `schemaVersion`, or with `schemaVersion` 2, is refused by default in both the Node and Python verifiers. Schema version 2 signs only seven top-level fields, so a record outside those fields could be altered without detection. Migration: re-issue the record as schemaVersion 3, or set `"allowLegacyV2": true` in the trust file (Node: `allowLegacyV2` option; Python: `allow_legacy_v2`). The CLI reads the same trust-file field.
 - Adds the optional `allowLegacyV2` trust-file field (a boolean, `false` when omitted), validated in both parsers.
