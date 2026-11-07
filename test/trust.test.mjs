@@ -25,7 +25,7 @@ test("a PEM that does not match the pinned fingerprint is rejected", () => {
   const other = makeKeyPair();
   const record = makeRecord({}, key);
   const entry = trustEntry("test-key", "ed25519", other, { fingerprint: keyFingerprint(key.publicPem) });
-  const result = verifyExecutionTrustRecord(record, trustSet(entry));
+  const result = verifyExecutionTrustRecord(record, trustSet(entry), { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /does not match its pinned fingerprint/);
 });
@@ -34,7 +34,7 @@ test("a record created before validFrom is rejected", () => {
   const key = makeKeyPair();
   const record = makeRecord({ createdAt: CREATED }, key);
   const trust = trustSet(trustEntry("test-key", "ed25519", key, { validFrom: "2026-06-01T00:00:00.000Z" }));
-  const result = verifyExecutionTrustRecord(record, trust);
+  const result = verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /outside the validity window/);
 });
@@ -43,7 +43,7 @@ test("validUntil is exclusive: a record created at validUntil is rejected", () =
   const key = makeKeyPair();
   const record = makeRecord({ createdAt: CREATED }, key);
   const trust = trustSet(trustEntry("test-key", "ed25519", key, { validUntil: CREATED }));
-  assert.equal(verifyExecutionTrustRecord(record, trust).valid, false);
+  assert.equal(verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true }).valid, false);
 });
 
 test("a record inside the window is accepted, including validFrom itself", () => {
@@ -53,14 +53,14 @@ test("a record inside the window is accepted, including validFrom itself", () =>
     validFrom: CREATED,
     validUntil: "2027-01-01T00:00:00.000Z",
   }));
-  assert.equal(verifyExecutionTrustRecord(record, trust, { allowLegacyOnly: true }).valid, true);
+  assert.equal(verifyExecutionTrustRecord(record, trust, { allowLegacyOnly: true, allowLegacyV2: true }).valid, true);
 });
 
 test("a compromised key is rejected even inside its window", () => {
   const key = makeKeyPair();
   const record = makeRecord({ createdAt: CREATED }, key);
   const trust = trustSet(trustEntry("test-key", "ed25519", key, { compromised: true }));
-  const result = verifyExecutionTrustRecord(record, trust);
+  const result = verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /marked compromised/);
 });
@@ -69,7 +69,7 @@ test("a signature whose algorithm differs from the trusted key's is rejected", (
   const key = makeKeyPair();
   const record = makeRecord({}, key);
   const trust = trustSet(trustEntry("test-key", "dilithium3", key));
-  const result = verifyExecutionTrustRecord(record, trust);
+  const result = verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true });
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /is trusted for dilithium3, not ed25519/);
 });
@@ -77,7 +77,7 @@ test("a signature whose algorithm differs from the trusted key's is rejected", (
 test("an unparseable createdAt is rejected", () => {
   const key = makeKeyPair();
   const record = makeRecord({ createdAt: "not-a-date" }, key);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
   assert.equal(result.valid, false);
 });
 

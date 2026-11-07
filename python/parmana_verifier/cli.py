@@ -59,7 +59,7 @@ def main(argv=None):
         return 2
 
     result = verify_execution_trust_record(
-        proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only
+        proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only, allow_legacy_v2=policy.allow_legacy_v2
     )
     print(result_to_json(result))
 

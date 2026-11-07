@@ -46,7 +46,7 @@ try {
   process.exit(2);
 }
 
-const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyOnly: policy.allowLegacyOnly });
+const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyOnly: policy.allowLegacyOnly, allowLegacyV2: policy.allowLegacyV2 });
 
 console.log(JSON.stringify(result));
 

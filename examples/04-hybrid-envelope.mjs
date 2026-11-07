@@ -32,19 +32,19 @@ if (!mlDsaSupported) {
   const trust = parseTrustSet(loadVector("trust.json"));
 
   heading("1. A valid hybrid record");
-  const valid = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), trust);
+  const valid = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), trust, { allowLegacyV2: true });
   for (const entry of loadVector("record-explicit-v2.json").signatures) {
     console.log(`  ${entry.algorithm.padEnd(10)} keyId=${entry.keyId}`);
   }
   console.log(`${valid.checks.hybridSignatures ? "ACCEPTED" : "REFUSED "}  both entries verify`);
 
   heading("2. The same envelope with one entry removed");
-  const single = verifyExecutionTrustRecord(loadVector("record-single-entry.json"), trust);
+  const single = verifyExecutionTrustRecord(loadVector("record-single-entry.json"), trust, { allowLegacyV2: true });
   console.log(`${caught(single.valid)}  a single-entry envelope is refused`);
   console.log(`      reason: ${single.errors.join(" ")}`);
 
   heading("3. Changing schemaVersion after signing");
-  const v3 = verifyExecutionTrustRecord(loadVector("record-schema-v3.json"), trust);
+  const v3 = verifyExecutionTrustRecord(loadVector("record-schema-v3.json"), trust, { allowLegacyV2: true });
   console.log(`${caught(v3.checks.hybridSignatures)}  changed schemaVersion is refused by the hybrid entries`);
 
   // Exit 0 when the valid record passes and the two tampered records are refused.

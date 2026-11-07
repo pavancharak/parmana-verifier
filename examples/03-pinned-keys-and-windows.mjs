@@ -58,7 +58,7 @@ const cases = [
 
 heading("Trust decisions for one signed record");
 for (const [label, trusted] of cases) {
-  const result = verifyExecutionTrustRecord(record, parseTrustSet({ keys: [trusted] }), { allowLegacyOnly: true });
+  const result = verifyExecutionTrustRecord(record, parseTrustSet({ keys: [trusted] }), { allowLegacyOnly: true, allowLegacyV2: true });
   console.log(`${decision(result.valid).padEnd(9)} ${label}`);
   if (!result.valid) console.log(`      reason: ${result.errors[0]}`);
 }
@@ -70,6 +70,6 @@ console.log("- A compromised key is refused whatever the timestamp, so its signa
 
 // Exit 0 when the first case passes and each other case is refused.
 const outcomes = cases.map(([, trusted]) =>
-  verifyExecutionTrustRecord(record, parseTrustSet({ keys: [trusted] }), { allowLegacyOnly: true }).valid,
+  verifyExecutionTrustRecord(record, parseTrustSet({ keys: [trusted] }), { allowLegacyOnly: true, allowLegacyV2: true }).valid,
 );
 process.exitCode = outcomes[0] === true && outcomes.slice(1).every((v) => v === false) ? 0 : 1;

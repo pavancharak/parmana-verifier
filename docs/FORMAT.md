@@ -52,6 +52,7 @@ The file may also set one optional top-level field:
 |---|---|---|
 | `hybridRequiredFrom` | No | An ISO 8601 UTC timestamp ending in `Z`. A record whose `createdAt` is at or after this instant must have a valid hybrid envelope. If omitted or `null`, no cutover applies, and a record with no hybrid envelope is refused unless `allowLegacyOnly` is `true`. The file's owner sets it; a record cannot set it for itself. |
 | `allowLegacyOnly` | No | A boolean, `false` when omitted. Set it to `true` only if you accept records that have no hybrid envelope and no cutover applies. When `hybridRequiredFrom` is set, the cutover alone decides and this field has no effect. |
+| `allowLegacyV2` | No | A boolean, `false` when omitted. A record with no `schemaVersion`, or with `schemaVersion` 2, signs only seven top-level fields. It is refused unless this is `true`. Set it only if you accept records that are not fully signed. |
 
 A file that breaks any of these rules is rejected as a read error (exit code 2).
 

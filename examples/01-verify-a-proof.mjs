@@ -18,7 +18,7 @@ console.log(`businessTransactionId ${record.businessTransactionId}`);
 console.log(`createdAt             ${record.createdAt}`);
 console.log(`signatures            ${record.signatures.map((s) => s.algorithm).join(", ")}`);
 
-const result = verifyExecutionTrustRecord(record, trust);
+const result = verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true });
 
 heading("2. The checks");
 console.log(`${mark(result.checks.trustRecordHash)}  trustRecordHash`);

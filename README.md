@@ -129,7 +129,7 @@ A record with no `signatures` array is a legacy-only record. The verifier refuse
 - the trust file sets `hybridRequiredFrom` and the record was created before that instant; or
 - the trust file sets `"allowLegacyOnly": true` and does not set `hybridRequiredFrom`.
 
-Otherwise the result is invalid, and the error says which setting would accept it. A record created at or after `hybridRequiredFrom` always needs a valid hybrid envelope, whatever `allowLegacyOnly` says. See [docs/FORMAT.md](docs/FORMAT.md#trust-set-trustjson).
+Otherwise the result is invalid, and the error says which setting would accept it. A record with no `schemaVersion`, or with `schemaVersion` 2, is refused unless the trust file sets `"allowLegacyV2": true`, because it signs only seven top-level fields. A record created at or after `hybridRequiredFrom` always needs a valid hybrid envelope, whatever `allowLegacyOnly` says. See [docs/FORMAT.md](docs/FORMAT.md#trust-set-trustjson).
 
 ## Examples
 

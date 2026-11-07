@@ -14,7 +14,7 @@ const v3 = verifyExecutionTrustRecord(loadVector("record-whole-record-v3.json"),
 console.log(`${decision(v3.valid)}  coverage=${v3.coverage}`);
 
 heading("2. A version 2 record: coverage is legacy");
-const v2 = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), parseTrustPolicy(loadVector("trust.json")).keys);
+const v2 = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), parseTrustPolicy(loadVector("trust.json")).keys, { allowLegacyV2: true });
 console.log(`${decision(v2.valid)}  coverage=${v2.coverage}`);
 console.log("Read decisions from version 2 records only through the fields the format document lists.");
 
