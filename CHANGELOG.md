@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.1] - 2026-11-10
+
+- Version aligned with the Parmana SDK packages, all at 2.0.1 (`@parmana/sdk`, `parmana`, `@parmana/connector-sdk`, `parmana-connector-sdk`, `@parmana/cli`, `@parmana/shared`, `@parmana/crypto`). Both verifier packages carry 2.0.1: `@parmana/verifier` on npm and `parmana-verifier` on PyPI.
+- No verification behavior changed in this release. The 2.0.0 breaking changes below still apply.
+
 ## [2.0.0] - 2026-11-07
 
 - **Breaking:** a record with no `schemaVersion`, or with `schemaVersion` 2, is refused by default in both the Node and Python verifiers. Schema version 2 signs only seven top-level fields, so a record outside those fields could be altered without detection. Migration: re-issue the record as schemaVersion 3, or set `"allowLegacyV2": true` in the trust file (Node: `allowLegacyV2` option; Python: `allow_legacy_v2`). The CLI reads the same trust-file field.
