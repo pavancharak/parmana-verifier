@@ -1,6 +1,6 @@
 # Remaining work
 
-Status as of 2026-11-07.
+Status as of 2026-11-15.
 
 ## Done
 
@@ -9,7 +9,7 @@ Status as of 2026-11-07.
 
 ## Open
 
-- **Schema v3 records (issue #27).** Still open. It stays open until parmana-core provides server-built fixtures (parmana-core issue #291), so the verifier can be tested against records the server actually produced.
+- **Schema v3 records (issue #27).** Closed on 2026-11-15. Both verifiers read and verify schema version 3, and the fixtures are in `test/vectors/parmana-core-generated`. The fixtures were exported by parmana-core's test harness, not by the deployed server.
 - **Node version.** ML-DSA-65 (`dilithium3`) checks need Node 24 or later with OpenSSL 3.5 or later. On an earlier Node, a record signed with `dilithium3` is refused with an error that says so, not accepted.
 
 ## Notes for the next change
