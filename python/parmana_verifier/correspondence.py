@@ -5,8 +5,8 @@ something only for a record whose signatures also verify. Mirrors the Node modul
 (src/correspondence.mjs) and parmana-core's checkExecutionCorrespondence. Pure string comparison;
 the record is not modified.
 
-Statuses per execution: "passed", "failed" (a field is missing, malformed or different, or the record
-embeds no authorization) and "not_checked" (no correspondence fields, or no evidence). The report is
+Statuses per execution: "passed", "failed" (a field is missing, malformed or different) and "not_checked"
+(no correspondence fields, no evidence, or no authorization in the record to compare with). The report is
 "passed" only when every execution was checked and corresponds.
 """
 
@@ -86,7 +86,8 @@ def check_trust_record_correspondence(record):
         execution_id = execution.get("executionId")
 
         if authorization is None:
-            result = {"status": "failed", "failures": ["no authorization is embedded in the trust record"]}
+            # Nothing to compare with: not checked. It is not a mismatch, so it is not "failed".
+            result = {"status": "not_checked", "reason": "no authorization is embedded in the trust record"}
         elif execution.get("evidence") is None:
             result = {"status": "not_checked", "reason": "execution has no evidence recorded"}
         else:

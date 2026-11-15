@@ -75,12 +75,12 @@ def test_each_missing_or_different_field_is_named():
     assert "authorityGrantId differs from the authorization" in failures
 
 
-def test_a_record_with_no_authorization_fails_each_execution():
+def test_a_record_with_no_authorization_is_not_checked_never_failed():
     report = check_trust_record_correspondence(
         record([{"executionId": "e-1", "evidence": {"correspondence": correspondence()}}], authorization={})
     )
-    assert report["status"] == "failed"
-    assert report["executions"][0]["result"]["status"] == "failed"
+    assert report["status"] == "not_checked"
+    assert report["executions"][0]["result"]["status"] == "not_checked"
 
 
 def test_an_execution_without_evidence_is_not_checked():

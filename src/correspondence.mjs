@@ -102,9 +102,10 @@ export function checkTrustRecordCorrespondence(record) {
   const authorization = authorizationOf(record);
   const executions = (Array.isArray(record?.executions) ? record.executions : []).map((execution) => {
     if (authorization === undefined) {
+      // Nothing to compare with: not checked. It is not a mismatch, so it is not "failed".
       return {
         executionId: execution.executionId,
-        result: { status: "failed", failures: ["no authorization is embedded in the trust record"] },
+        result: { status: "not_checked", reason: "no authorization is embedded in the trust record" },
       };
     }
 

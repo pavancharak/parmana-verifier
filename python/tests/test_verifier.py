@@ -342,7 +342,7 @@ def test_cli_prints_one_json_line(tmp_path, key):
     report = json.loads(output)
     assert {key: report[key] for key in ("valid", "coverage", "errors", "checks")} == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
     # The correspondence report is added; it does not change "valid" (see correspondence.py).
-    assert report["correspondence"]["status"] == "failed"
+    assert report["correspondence"]["status"] == "not_checked"
     assert output.count("\n") == 1
 
 

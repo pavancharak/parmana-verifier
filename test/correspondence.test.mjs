@@ -54,10 +54,11 @@ test("each missing or different field is named, and nothing is skipped", () => {
   assert.ok(result.failures.includes("authorityGrantId differs from the authorization"));
 });
 
-test("a record with no authorization fails each execution", () => {
+test("a record with no authorization is not checked, never failed", () => {
   const report = checkTrustRecordCorrespondence(record([{ executionId: "e-1", evidence: { correspondence: correspondence() } }], null));
-  assert.equal(report.status, "failed");
-  assert.equal(report.executions[0].result.status, "failed");
+  assert.equal(report.status, "not_checked");
+  assert.equal(report.executions[0].result.status, "not_checked");
+  assert.match(report.executions[0].result.reason, /no authorization/);
 });
 
 test("an execution without evidence is not checked, so the report is not passed", () => {
