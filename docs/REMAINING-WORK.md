@@ -1,15 +1,20 @@
 # Remaining work
 
-Status as of 2026-11-07.
+Status as of 2026-11-15.
 
 ## Done
 
 - **Strict timestamps (VF-001).** The Node verifier now parses timestamps strictly, as the Python verifier does. A timestamp must carry `Z` or a `±hh:mm` offset, and impossible dates are rejected. Merged in PR #32 (`80498b9`). Source: `src/timestamp.mjs`, with tests in `test/timestamp.test.mjs`.
 - **ML-DSA-65 checks.** Merged in PR #31. Issue #28 is done.
+- **Execution correspondence report (PR #39, merged).** Both verifiers report `correspondence`. A record with no embedded authorization is `not_checked`, not `failed`.
+- **Python quick start (merged).** The sample trust file sets `allowLegacyV2`, so the documented command verifies. Both suites test it.
+- **Records from parmana-core (merged).** `test/vectors/parmana-core-generated` holds 22 cases over records exported from parmana-core `7e9a54fb`, run by both suites, which must agree.
+- **Published verifiers read schema version 3 (2026-11-15).** Checked by running the published 2.0.1 CLIs, and by reading the source of the 0.3.0 npm and 0.1.0 and 1.6.3 PyPI releases.
 
 ## Open
 
-- **Schema v3 records (issue #27).** Still open. It stays open until parmana-core provides server-built fixtures (parmana-core issue #291), so the verifier can be tested against records the server actually produced.
+- **Schema v3 records (issue #27).** The fixtures that issue asked for now exist: `test/vectors/parmana-core-generated` holds records exported from parmana-core `7e9a54fb` through its HTTP path. The export harness is not committed to parmana-core, so the fixtures are a snapshot, not a regenerating script. Closing issue #27 is the owner's decision.
+- **Default schema in parmana-core.** On `claude/default-schema-v3` (not merged), parmana-core emits schema version 3 by default. Until that merges, a parmana-core record from a default configuration is schema version 2, which this verifier refuses unless the trust file sets `allowLegacyV2`.
 - **Node version.** ML-DSA-65 (`dilithium3`) checks need Node 24 or later with OpenSSL 3.5 or later. On an earlier Node, a record signed with `dilithium3` is refused with an error that says so, not accepted.
 
 ## Notes for the next change
