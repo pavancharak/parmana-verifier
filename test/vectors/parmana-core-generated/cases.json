@@ -1,0 +1,340 @@
+{
+  "source": "Generated from the parmana-core working tree at commit 7e9a54fb (branch claude/status-events-code): an HTTP declare-then-execute export under CRYPTO_MODE=hybrid HYBRID_SCHEMA_VERSION=3 (v3), HYBRID_SCHEMA_VERSION=2 (v2), and CRYPTO_MODE=single (single). Test key material only, not for production.",
+  "cases": [
+    {
+      "name": "v3 record 1 verifies with the run's trust",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": true,
+        "coverage": "full",
+        "checks": {
+          "trustRecordHash": true,
+          "signature": true,
+          "hybridSignatures": true
+        },
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "v3 record 2 verifies with the run's trust",
+      "record": "v3-record-2.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": true,
+        "coverage": "full",
+        "checks": {
+          "trustRecordHash": true,
+          "signature": true,
+          "hybridSignatures": true
+        },
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "v3 record 3 verifies with the run's trust",
+      "record": "v3-record-3.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": true,
+        "coverage": "full",
+        "checks": {
+          "trustRecordHash": true,
+          "signature": true,
+          "hybridSignatures": true
+        },
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "v2 record is refused by default",
+      "record": "v2-record-1.json",
+      "trust": "trust-v2.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "refused by default",
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "v2 record is accepted with allowLegacyV2 in the trust file",
+      "record": "v2-record-1.json",
+      "trust": "trust-v2-allow-legacy-v2.json",
+      "expect": {
+        "valid": true,
+        "coverage": "legacy",
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "single-algorithm record is refused by default",
+      "record": "single-record-1.json",
+      "trust": "trust-single.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "refused by default",
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "single-algorithm record is accepted with allowLegacyV2 and allowLegacyOnly",
+      "record": "single-record-1.json",
+      "trust": "trust-single-allow-legacy.json",
+      "expect": {
+        "valid": true,
+        "coverage": "legacy",
+        "correspondence": "passed"
+      }
+    },
+    {
+      "name": "tampered transaction metadata is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "checks": {
+          "trustRecordHash": false
+        },
+        "correspondence": "passed"
+      },
+      "tamper": [
+        {
+          "path": "transaction.metadata.grantedCapability",
+          "value": "test:tampered"
+        }
+      ]
+    },
+    {
+      "name": "tampered updatedAt is refused by the hybrid signatures only",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "checks": {
+          "signature": true,
+          "hybridSignatures": false
+        }
+      },
+      "tamper": [
+        {
+          "path": "updatedAt",
+          "value": "2099-01-01T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "tampered execution decision signal is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy"
+      },
+      "tamper": [
+        {
+          "path": "executions.0.decision.signals.vendorVerified",
+          "value": false
+        }
+      ]
+    },
+    {
+      "name": "tampered authorization payload is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy"
+      },
+      "tamper": [
+        {
+          "path": "authorization.payload.policyVersion",
+          "value": "9.9.9"
+        }
+      ]
+    },
+    {
+      "name": "tampered correspondence dispatched hash fails correspondence",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "correspondence": "failed"
+      },
+      "tamper": [
+        {
+          "path": "executions.0.evidence.correspondence.dispatchedContentHash",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "tampered correspondence hash source fails correspondence",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "correspondence": "failed"
+      },
+      "tamper": [
+        {
+          "path": "executions.0.evidence.correspondence.dispatchedHashSource",
+          "value": "bogus"
+        }
+      ]
+    },
+    {
+      "name": "tampered trustRecordId is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy"
+      },
+      "tamper": [
+        {
+          "path": "trustRecordId",
+          "value": "00000000-0000-4000-8000-000000000000"
+        }
+      ]
+    },
+    {
+      "name": "tampered ed25519 signature is refused, hybrid still verifies",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "full",
+        "checks": {
+          "signature": false,
+          "hybridSignatures": true
+        }
+      },
+      "tamper": [
+        {
+          "path": "signature.value",
+          "value": "MLSTKSk/Nj1UVMWNzzLE/5pUqlEBMVCSLingm3bI4K/59DM2bM+o/G9vO9KGpUWDFYizOGUDEw1xq9ebVXclAAAA"
+        }
+      ]
+    },
+    {
+      "name": "tampered dilithium signature is refused, ed25519 still verifies",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "checks": {
+          "signature": true,
+          "hybridSignatures": false
+        }
+      },
+      "tamper": [
+        {
+          "path": "signatures.1.signature",
+          "value": "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"
+        }
+      ]
+    },
+    {
+      "name": "record checked against another run's trust is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v2.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "checks": {
+          "signature": false
+        }
+      }
+    },
+    {
+      "name": "ed25519 key marked compromised is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "compromised"
+      },
+      "trustEdits": [
+        {
+          "keyId": "default",
+          "set": {
+            "compromised": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ed25519 key whose validity ended before the record is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "validity window"
+      },
+      "trustEdits": [
+        {
+          "keyId": "default",
+          "set": {
+            "validUntil": "2026-11-14T00:00:00.000Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ed25519 key not valid until later is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "validity window"
+      },
+      "trustEdits": [
+        {
+          "keyId": "default",
+          "set": {
+            "validFrom": "2099-01-01T00:00:00.000Z"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ed25519 key missing from the trust file is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy",
+        "errorIncludes": "no trusted key for keyId"
+      },
+      "trustEdits": [
+        {
+          "remove": "default"
+        }
+      ]
+    },
+    {
+      "name": "dilithium key missing from the trust file is refused",
+      "record": "v3-record-1.json",
+      "trust": "trust-v3.json",
+      "expect": {
+        "valid": false,
+        "coverage": "legacy"
+      },
+      "trustEdits": [
+        {
+          "remove": "default-secondary"
+        }
+      ]
+    }
+  ]
+}

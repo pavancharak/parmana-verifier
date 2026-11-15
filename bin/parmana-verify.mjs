@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
 import { keyFingerprint, parseTrustPolicy } from "../src/trust.mjs";
+import { checkTrustRecordCorrespondence } from "../src/correspondence.mjs";
 
 const args = process.argv.slice(2);
 const USAGE = "usage: parmana-verify <proof.json> <trust.json>\n       parmana-verify key-fingerprint <public-key.pem>";
@@ -48,6 +49,7 @@ try {
 
 const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyOnly: policy.allowLegacyOnly, allowLegacyV2: policy.allowLegacyV2 });
 
-console.log(JSON.stringify(result));
+// The correspondence report does not change `valid` or the exit code (see src/correspondence.mjs).
+console.log(JSON.stringify({ ...result, correspondence: checkTrustRecordCorrespondence(proof) }));
 
 process.exit(result.valid ? 0 : 1);

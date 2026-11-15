@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+- Changes the correspondence result for a record that embeds no authorization from `failed` to `not_checked`, in both verifiers. Nothing was compared, so it is not a mismatch. `valid`, the exit code and every other check are unchanged. A record with no authorization is never reported as `passed`. parmana-core's offline check (`ExecutionCorrespondenceOffline`) makes the same change.
+- Fixes the Python quick start. `test/vectors/trust-python-ed25519.json` now sets `allowLegacyV2`, because its record is schema version 2 and the verifier refuses that by default. Without it, the command in `python/README.md` exited 1 with `valid: false`. Adds quick-start tests in both suites (`test/quickstart.test.mjs`, `python/tests/test_quickstart.py`).
+- Adds `test/vectors/parmana-core-generated`: 22 cases over records exported from parmana-core at `7e9a54fb`, covering schema version 3 (valid), schema version 2 and single-algorithm (refused by default, accepted with the allowances), tampered copies, and trust-file edits. The Node and Python suites read the same cases and must agree.
+- Documents what `coverage` means (full only when the hybrid signatures verify) and what `checks.signature` covers (the legacy fields only). No verification behaviour changed.
+- Adds an execution correspondence report to the output of both verifiers (Node `src/correspondence.mjs`, Python `parmana_verifier/correspondence.py`). For each execution it checks that the dispatched content hash equals the authorized one, and that the nonce, the business transaction hash, the policy content hash and the authority grant match the record's authorization. Statuses: `passed`, `failed`, and `not_checked`, which is never reported as passed. It mirrors parmana-core's offline check (`ExecutionCorrespondenceOffline`, on its status-events branch, not yet merged).
+- The report does not change `valid`, the exit code, or any existing check. The command-line output gains a `correspondence` field.
+- Version number: not changed here. The release version is a decision for the owner.
+
 ## [2.0.1] - 2026-11-10
 
 - Version aligned with the Parmana SDK packages, all at 2.0.1 (`@parmana/sdk`, `parmana`, `@parmana/connector-sdk`, `parmana-connector-sdk`, `@parmana/cli`, `@parmana/shared`, `@parmana/crypto`). Both verifier packages carry 2.0.1: `@parmana/verifier` on npm and `parmana-verifier` on PyPI.

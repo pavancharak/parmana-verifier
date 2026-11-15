@@ -12,6 +12,7 @@ This is the Python counterpart of the Node verifier in the repository root. It c
 - The Ed25519 signature, over the legacy message, from a key in your trust file.
 - Ed25519 signatures in a hybrid `signatures` array, and the whole-record (schema version 3) message.
 - Trust rules: the key's fingerprint, its validity window, and the `compromised` flag.
+- Execution correspondence, as a separate `correspondence` report in the output: each execution's dispatched content hash must equal the authorized one, and the nonce, business transaction hash, policy content hash and authority grant must match the authorization. A `passed` report needs every execution checked and corresponding. The report does not change `valid` or the exit code. See [Execution correspondence](../README.md#execution-correspondence) in the repository README; the Node verifier gives the same report.
 - The `hybridRequiredFrom` cutover, when the trust file sets one. A record with no hybrid envelope is refused unless it predates the cutover, or the trust file sets `"allowLegacyOnly": true` (and no cutover is set).
 
 **ML-DSA-65 (`dilithium3`) signatures are checked** with `cryptography` 48.0.0 or later, over the same message as the Ed25519 entry. A hybrid record is accepted only when both entries verify, so one valid part is never enough.
@@ -48,10 +49,10 @@ parmana-verify test/vectors/record-python-ed25519.json test/vectors/trust-python
 ```
 
 ```json
-{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true}}
+{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true},"correspondence":{"status":"not_checked","executions":[{"executionId":null,"result":{"status":"not_checked","reason":"no authorization is embedded in the trust record"}}]}}
 ```
 
-The exit code is `0`. Change the record and it is rejected:
+The exit code is `0`. The `correspondence` report is `not_checked` here because this legacy record embeds no authorization, so there is nothing to compare. That is not a mismatch. The report does not change `valid` or the exit code. Change the record and it is rejected:
 
 ```sh
 parmana-verify test/vectors/record-python-ed25519-tampered.json test/vectors/trust-python-ed25519.json

@@ -11,6 +11,7 @@ trust file.
 import json
 import sys
 
+from .correspondence import check_trust_record_correspondence
 from .trust import key_fingerprint, parse_trust_policy
 from .verify import result_to_json, verify_execution_trust_record
 
@@ -61,7 +62,12 @@ def main(argv=None):
     result = verify_execution_trust_record(
         proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only, allow_legacy_v2=policy.allow_legacy_v2
     )
-    print(result_to_json(result))
+    # The correspondence report does not change "valid" or the exit code (see correspondence.py).
+    import json
+
+    report = dict(json.loads(result_to_json(result)))
+    report["correspondence"] = check_trust_record_correspondence(proof)
+    print(json.dumps(report, separators=(",", ":")))
 
     return 0 if result["valid"] else 1
 

@@ -33,11 +33,17 @@ node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vector
     "trustRecordHash": true,
     "signature": true,
     "hybridSignatures": true
+  },
+  "correspondence": {
+    "status": "not_checked",
+    "executions": [
+      { "executionId": "ex_1", "result": { "status": "not_checked", "reason": "no authorization is embedded in the trust record" } }
+    ]
   }
 }
 ```
 
-The exit code is `0`. A record that has been changed is rejected:
+The exit code is `0`. The `correspondence` field is a separate report, described in [Execution correspondence](#execution-correspondence). It does not change `valid` or the exit code. This sample record is a trimmed test vector that does not embed its authorization, so there is nothing to compare and its correspondence is reported as `not_checked`, not as a mismatch. A complete record from Parmana embeds the authorization and is checked. A record that has been changed is rejected:
 
 ```sh
 node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vectors/trust.json
@@ -102,6 +108,18 @@ The verify command prints one line of JSON and exits with `0` (valid), `1` (inva
 
 On Windows PowerShell, use the same commands with Windows paths, for example `node bin\parmana-verify.mjs proof.json trust.json`.
 
+## Execution correspondence
+
+The output also carries a `correspondence` report: whether what was dispatched is what was authorized. It is checked from the record alone, the same way as the signatures, and it uses the same rules as Parmana's own offline check.
+
+For each execution, the record's authorization (its nonce, business transaction hash, policy content hash and authority grant) is compared with the execution's `evidence.correspondence`. Every field must be present and must match, and the dispatched content hash must equal the authorized one. The statuses are:
+
+- `passed`: every field is present and matches the authorization.
+- `failed`: a field is missing or different. This is a mismatch that was observed.
+- `not_checked`: the execution has no correspondence fields, no evidence, or the record embeds no authorization to compare with. Nothing was compared, so this is not a mismatch. It is never reported as passed.
+
+The report is `passed` only when every execution is checked and corresponds. The verifier reports it and does not decide what it means for your system: a `failed` or `not_checked` report is for you to act on. It is meaningful only for a record whose signatures also verify, so read it together with `valid`.
+
 ## Pinning a key
 
 A signature proves only that a key made it. Before you trust a record, decide which keys you trust, and check that each key is the one its owner published.
@@ -163,11 +181,15 @@ Run the tests on Node 24. On Node 22 or any runtime without ML-DSA-65, the hybri
 
 The suite covers the legacy signature and hash, hybrid signatures, schema version 3 coverage, the trust rules, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
 
+Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and `python/tests/test_parmana_core_records.py`. They use `test/vectors/parmana-core-generated/cases.json`: 22 cases over records exported at parmana-core `7e9a54fb`, with tampered copies and trust-file edits. Both verifiers must agree on every case. The quick-start record in `python/README.md` is tested in `test/quickstart.test.mjs` and `python/tests/test_quickstart.py`.
+
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
 - For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
-- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check that `coverage` is `full` when that matters.
+- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected.
+- `coverage` is `full` only when the hybrid signatures also verify. It does not report the schema version. A schema version 3 record that fails the hybrid check reports `legacy`, and an Ed25519-only failure can report `full` alongside `valid: false`. Read `valid` for the verdict.
+- `checks.signature` is the legacy top-level signature, which covers only the seven legacy fields. A change to `updatedAt` in a schema version 3 record is caught by the hybrid signatures alone, so `checks.signature` stays `true` (pinned by `test/parmana-core-records.test.mjs`).
 - A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this. With no cutover set, a record with no hybrid envelope is refused unless the trust file sets `allowLegacyOnly` to `true` (see "Records with no hybrid envelope" above).
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
