@@ -1,0 +1,279 @@
+{
+  "trustRecordId": "1cdb3c4d-dc20-46c3-930a-7a8046d41942",
+  "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+  "transaction": {
+    "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+    "metadata": {
+      "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+      "correlationId": "12017c1e-ce66-4d79-a752-89d29ae20e4b",
+      "createdBy": "integration-test",
+      "createdAt": "2026-11-15T10:54:30.572Z",
+      "submittedBy": "export-caller",
+      "grantedCapability": "test:fixture-execute"
+    },
+    "authority": {
+      "authorityId": "e8c301ad-a40e-4d9b-b5b5-58a5900493e8",
+      "authorityType": "USER",
+      "principalId": "integration-test",
+      "displayName": "Integration Test",
+      "issuedAt": "2026-11-15T10:54:30.572Z"
+    },
+    "authorization": {
+      "authorizationId": "613d6fcc-c8a5-4c13-839a-82335580dcc7",
+      "authorityId": "e8c301ad-a40e-4d9b-b5b5-58a5900493e8",
+      "purpose": "Integration Test",
+      "authorizedAt": "2026-11-15T10:54:30.572Z"
+    },
+    "intent": {
+      "intentId": "da28cb72-56f2-4cc9-b7d7-b2e3280cad4a",
+      "authorizationId": "613d6fcc-c8a5-4c13-839a-82335580dcc7",
+      "action": "test:fixture-execute",
+      "target": "vendor://payments",
+      "parameters": {
+        "paymentId": "payment-001",
+        "amount": 1000
+      },
+      "createdAt": "2026-11-15T10:54:30.572Z"
+    },
+    "policy": {
+      "name": "vendor-payment",
+      "version": "2.1.0",
+      "schemaVersion": "1.0.0",
+      "contentHash": "18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d",
+      "governanceAnchor": {
+        "status": "VERIFIED",
+        "approvalRecordId": "ef199a2f-cd2c-4bb7-b093-6aae4c5259c9"
+      }
+    },
+    "signals": {
+      "vendorVerified": true,
+      "invoiceVerified": true,
+      "paymentApproved": true,
+      "sufficientFunds": true,
+      "paymentAmount": 1000,
+      "riskScore": 10,
+      "vendorId": "vendor://payments",
+      "humanApproved": true,
+      "approvalArtifact": {
+        "payload": {
+          "version": 1,
+          "approvalId": "d51ae193-fc2c-4dfc-930b-23913711d5dc",
+          "issuer": {
+            "approverId": "test-approver",
+            "keyId": "test-approver-key-1"
+          },
+          "issuedAt": "2026-11-15T10:54:30.572Z",
+          "expiresAt": "2026-11-15T11:09:30.572Z",
+          "capability": "test:fixture-execute",
+          "resourceId": "vendor://payments",
+          "scope": {
+            "field": "value",
+            "comparator": "lte",
+            "value": 1000
+          },
+          "nonce": "7c029ac2-6f5a-4ecd-879b-bf30a8e26264"
+        },
+        "signature": {
+          "algorithm": "ed25519",
+          "keyId": "test-approver-key-1",
+          "value": "FFbxYlcUU1pXMGDPyH+1Ewqu0HmVRJjCAr6ceySs4pihUvBVJxbBLaEYmkZcKfjd8lQIxQvQ99dJeN7s2TwDBQ==",
+          "signedAt": "2026-11-15T10:54:30.572Z"
+        }
+      }
+    },
+    "status": "RECEIVED",
+    "createdAt": "2026-11-15T10:54:30.575Z"
+  },
+  "authorization": {
+    "payload": {
+      "version": 1,
+      "authorizationId": "3f243540-daff-4c40-b13c-7434aa2a33c6",
+      "nonce": "2fe0c98d-97b1-4fcb-ab99-50605ae2d1d9",
+      "decisionId": "796ff18f-bb78-4cf7-8dbb-3541b116386b",
+      "decisionOutcome": "APPROVED",
+      "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+      "policyName": "vendor-payment",
+      "policyVersion": "2.1.0",
+      "policyContentHash": "18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d",
+      "signalsHash": "44126d45919f30c9a8dd8c13630ded42df4d8c059d188f831970147f09fef2aa",
+      "submittedBy": "export-caller",
+      "grantedCapability": "test:fixture-execute",
+      "authorizedAt": "2026-11-15T10:54:30.580Z",
+      "expiresAt": "2026-11-15T10:56:30.580Z",
+      "businessTransactionHash": "5c2a17f054ab764ff5e915fee8eeb670a7fdc1707e8e6bf504c1d468c63be166"
+    },
+    "signature": "3zEQ0gS0dq5EAK0e3y1cnNC63UlqbT7DrFgT8OV0PjygaCQq2esRhvFR94UBeYmqcrhoLPLa7HpkEjOkeAY7CA==",
+    "keyId": "default",
+    "algorithm": "ed25519"
+  },
+  "overrides": [],
+  "executions": [
+    {
+      "executionId": "82d49b43-403c-4087-8e11-bb654c925cc6",
+      "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+      "decision": {
+        "decisionId": "796ff18f-bb78-4cf7-8dbb-3541b116386b",
+        "evaluationMethod": {
+          "id": "deterministic-rules",
+          "version": "2"
+        },
+        "intentId": "da28cb72-56f2-4cc9-b7d7-b2e3280cad4a",
+        "policy": {
+          "name": "vendor-payment",
+          "version": "2.1.0",
+          "schemaVersion": "1.0.0"
+        },
+        "signals": {
+          "vendorVerified": true,
+          "invoiceVerified": true,
+          "paymentApproved": true,
+          "sufficientFunds": true,
+          "paymentAmount": 1000,
+          "riskScore": 10,
+          "vendorId": "vendor://payments",
+          "humanApproved": true,
+          "approvalArtifact": {
+            "payload": {
+              "version": 1,
+              "approvalId": "d51ae193-fc2c-4dfc-930b-23913711d5dc",
+              "issuer": {
+                "approverId": "test-approver",
+                "keyId": "test-approver-key-1"
+              },
+              "issuedAt": "2026-11-15T10:54:30.572Z",
+              "expiresAt": "2026-11-15T11:09:30.572Z",
+              "capability": "test:fixture-execute",
+              "resourceId": "vendor://payments",
+              "scope": {
+                "field": "value",
+                "comparator": "lte",
+                "value": 1000
+              },
+              "nonce": "7c029ac2-6f5a-4ecd-879b-bf30a8e26264"
+            },
+            "signature": {
+              "algorithm": "ed25519",
+              "keyId": "test-approver-key-1",
+              "value": "FFbxYlcUU1pXMGDPyH+1Ewqu0HmVRJjCAr6ceySs4pihUvBVJxbBLaEYmkZcKfjd8lQIxQvQ99dJeN7s2TwDBQ==",
+              "signedAt": "2026-11-15T10:54:30.572Z"
+            }
+          }
+        },
+        "outcome": "APPROVED",
+        "reason": "Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied, with a verified human approval.",
+        "matchedRuleId": "approve-payment",
+        "evaluatedRules": 1,
+        "matchedPath": [
+          "approve-payment"
+        ],
+        "evaluatedAt": "2026-11-15T10:54:30.580Z",
+        "assessment": {
+          "authority": {
+            "status": "AUTHORIZED",
+            "reason": "Capability \"test:fixture-execute\" is decided under its approved, current policy vendor-payment 2.1.0, for caller export-caller. This says the action may be decided, not that this action is valid or was executed."
+          },
+          "businessValidation": {
+            "status": "NOT_EVALUATED",
+            "reason": "The policy declares no business facts to establish."
+          }
+        }
+      },
+      "status": "COMPLETED",
+      "mode": "SYNC",
+      "startedAt": "2026-11-15T10:54:30.580Z",
+      "metadata": {
+        "authorizationId": "3f243540-daff-4c40-b13c-7434aa2a33c6"
+      },
+      "previousChainHash": null,
+      "chainHash": "f8b52cdf8ea23636f0dc358d492141dc1097c320a116f327ef766dbfeab552df",
+      "chainSignature": {
+        "algorithm": "ed25519",
+        "keyId": "default",
+        "value": "Z4BqvH8rcd5KexriMn48/b7bnnm2D+cnjR6ctsbKfJ44PCXxiOZ8TJfVqWvpn/QMT/sSrZiR+zjXA/gcLPl3BQ==",
+        "signedAt": "2026-11-15T10:54:30.583Z"
+      },
+      "evidence": {
+        "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+        "action": "test:fixture-execute",
+        "target": "vendor://payments",
+        "parameters": {
+          "paymentId": "payment-001",
+          "amount": 1000
+        },
+        "success": true,
+        "executedAt": "2026-11-15T10:54:30.582Z",
+        "attributes": {},
+        "correspondence": {
+          "schemaVersion": 1,
+          "authorizationNonce": "2fe0c98d-97b1-4fcb-ab99-50605ae2d1d9",
+          "authorizedContentHash": "5c2a17f054ab764ff5e915fee8eeb670a7fdc1707e8e6bf504c1d468c63be166",
+          "dispatchedContentHash": "5c2a17f054ab764ff5e915fee8eeb670a7fdc1707e8e6bf504c1d468c63be166",
+          "dispatchedHashSource": "gateway",
+          "policyContentHash": "18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d"
+        }
+      },
+      "completedAt": "2026-11-15T10:54:30.582Z"
+    }
+  ],
+  "verifications": [
+    {
+      "verificationId": "5ab339ef-480d-45c2-81f6-04c63ed5e629",
+      "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+      "status": "VERIFIED",
+      "message": "Execution Trust Record verified successfully.",
+      "verifiedAt": "2026-11-15T10:54:30.587Z",
+      "trustRecordHash": "96733cc38bdb5d5c3b0c9d595ca2df863cab9a0724062c6d3190178cb5dcea93"
+    }
+  ],
+  "receipts": [
+    {
+      "receiptId": "ced093c5-2f3a-4a59-a548-cb1d80218e4b",
+      "businessTransactionId": "0714a812-8e32-4bb7-85fc-5beb56488a19",
+      "trustRecordHash": "96733cc38bdb5d5c3b0c9d595ca2df863cab9a0724062c6d3190178cb5dcea93",
+      "receiptHash": "6338427d864fc888383b26848adc1279861784fea8900ef7571e87ea8da949cf",
+      "issuedAt": "2026-11-15T10:54:30.588Z",
+      "algorithm": "ed25519",
+      "signature": "Cu3MtySFMXzvFbcYw/L9vRdj74x5qnbnhjJcY4L8xSu7st6r7U2MOHTUSLNZYWmFZAbhZFpfJRZqmOaFg1VqAA==",
+      "schemaVersion": 2,
+      "signatures": [
+        {
+          "algorithm": "ed25519",
+          "keyId": "default",
+          "signature": "eDyRKMCv9MRGqb0gcv3eAiJBxERJcDIRH3eBotJT0dZZ0vx72I3iXz4Ty1ReicSgKDSzHGZa3zAgFRN25e8mCA=="
+        },
+        {
+          "algorithm": "dilithium3",
+          "keyId": "default-secondary",
+          "signature": "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"
+        }
+      ]
+    }
+  ],
+  "evidenceAnchor": {
+    "policyContentHash": "18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d",
+    "governanceAnchorStatus": "VERIFIED",
+    "anchorHash": "38a7981d470d93e09eeb15e31e86f6d744c1839947aa25792513a7a4f5ad2565"
+  },
+  "createdAt": "2026-11-15T10:54:30.583Z",
+  "updatedAt": "2026-11-15T10:54:30.583Z",
+  "trustRecordHash": "96733cc38bdb5d5c3b0c9d595ca2df863cab9a0724062c6d3190178cb5dcea93",
+  "signature": {
+    "algorithm": "ed25519",
+    "keyId": "default",
+    "value": "Vsei52CyzhKpabYbUtWxTf55fnLvLsv5tbN/v+OxH8VoEQLx9M06IR5q1svgqWmauO4gYVOxu4hTvDmT19SKBA==",
+    "signedAt": "2026-11-15T10:54:30.583Z"
+  },
+  "schemaVersion": 3,
+  "signatures": [
+    {
+      "algorithm": "ed25519",
+      "keyId": "default",
+      "signature": "E7k/HSl6SMju1YLZ+EDeJa+nsZMD38UOTFxeTWNardXKJCC4GahZ10diNxfJrIhv8OLnfcbBkFnufjQ50RjYDA=="
+    },
+    {
+      "algorithm": "dilithium3",
+      "keyId": "default-secondary",
+      "signature": "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"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "keys": [
+    {
+      "keyId": "default",
+      "algorithm": "ed25519",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAWPz8+dAMcRV1ELgEV/qvT8B5BRTQ5EhW/7dLqeW+GzI=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:4f02fafdc7c6fa932b91665d026a32fd6eb6e41aed0f5d004478e2abb9528316",
+      "validFrom": "2000-01-01T00:00:00.000Z",
+      "validUntil": null,
+      "compromised": false
+    },
+    {
+      "keyId": "default-secondary",
+      "algorithm": "dilithium3",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n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\n6bfvocZM\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:12d476025e327b312868a10e1d4c997a7939c610a689151d528f150737e3a31a",
+      "validFrom": "2000-01-01T00:00:00.000Z",
+      "validUntil": null,
+      "compromised": false
+    }
+  ],
+  "allowLegacyV2": true
+}
