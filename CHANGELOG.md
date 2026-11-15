@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- Adds an execution correspondence report to the output of both verifiers (Node `src/correspondence.mjs`, Python `parmana_verifier/correspondence.py`). For each execution it checks that the dispatched content hash equals the authorized one, and that the nonce, the business transaction hash, the policy content hash and the authority grant match the record's authorization. Statuses: `passed`, `failed`, and `not_checked`, which is never reported as passed. It mirrors parmana-core's offline check (`ExecutionCorrespondenceOffline`, on its status-events branch, not yet merged).
+- The report does not change `valid`, the exit code, or any existing check. The command-line output gains a `correspondence` field.
+- Version number: not changed here. The release version is a decision for the owner.
+
 ## [2.0.1] - 2026-11-10
 
 - Version aligned with the Parmana SDK packages, all at 2.0.1 (`@parmana/sdk`, `parmana`, `@parmana/connector-sdk`, `parmana-connector-sdk`, `@parmana/cli`, `@parmana/shared`, `@parmana/crypto`). Both verifier packages carry 2.0.1: `@parmana/verifier` on npm and `parmana-verifier` on PyPI.

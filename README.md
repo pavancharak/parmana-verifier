@@ -33,11 +33,17 @@ node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vector
     "trustRecordHash": true,
     "signature": true,
     "hybridSignatures": true
+  },
+  "correspondence": {
+    "status": "failed",
+    "executions": [
+      { "executionId": "ex_1", "result": { "status": "failed", "failures": ["no authorization is embedded in the trust record"] } }
+    ]
   }
 }
 ```
 
-The exit code is `0`. A record that has been changed is rejected:
+The exit code is `0`. The `correspondence` field is a separate report, described in [Execution correspondence](#execution-correspondence). It does not change `valid` or the exit code. This sample record is a trimmed test vector that does not embed its authorization, so its correspondence is reported as failed; a complete record from Parmana embeds the authorization and is checked. A record that has been changed is rejected:
 
 ```sh
 node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vectors/trust.json
@@ -101,6 +107,18 @@ parmana-verify <proof.json> <trust.json>
 The verify command prints one line of JSON and exits with `0` (valid), `1` (invalid, with reasons), or `2` (usage, missing file, or invalid JSON). The full input and output rules are in [docs/FORMAT.md](docs/FORMAT.md).
 
 On Windows PowerShell, use the same commands with Windows paths, for example `node bin\parmana-verify.mjs proof.json trust.json`.
+
+## Execution correspondence
+
+The output also carries a `correspondence` report: whether what was dispatched is what was authorized. It is checked from the record alone, the same way as the signatures, and it uses the same rules as Parmana's own offline check.
+
+For each execution, the record's authorization (its nonce, business transaction hash, policy content hash and authority grant) is compared with the execution's `evidence.correspondence`. Every field must be present and must match, and the dispatched content hash must equal the authorized one. The statuses are:
+
+- `passed`: every field is present and matches the authorization.
+- `failed`: a field is missing or different, or the record embeds no authorization.
+- `not_checked`: the execution has no correspondence fields or no evidence. This is never reported as passed.
+
+The report is `passed` only when every execution is checked and corresponds. The verifier reports it and does not decide what it means for your system: a `failed` or `not_checked` report is for you to act on. It is meaningful only for a record whose signatures also verify, so read it together with `valid`.
 
 ## Pinning a key
 

@@ -339,7 +339,10 @@ def test_cli_prints_one_json_line(tmp_path, key):
     good = tmp_path / "good.json"
     good.write_text(json.dumps(signed_record(key, "main", {"a": 1})))
     output = run_cli(str(good), str(trust_path)).stdout
-    assert json.loads(output) == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
+    report = json.loads(output)
+    assert {key: report[key] for key in ("valid", "coverage", "errors", "checks")} == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
+    # The correspondence report is added; it does not change "valid" (see correspondence.py).
+    assert report["correspondence"]["status"] == "failed"
     assert output.count("\n") == 1
 
 
