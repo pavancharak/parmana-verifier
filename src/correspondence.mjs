@@ -53,6 +53,16 @@ export function checkExecutionCorrespondence(correspondence, authorization) {
     failures.push("dispatched content differs from the authorized content");
   }
 
+  // The source of the dispatched hash is recorded for review. Only the two known values are accepted when the field
+  // is present. Whether the two sources must agree is an owner decision; this check does not compare them.
+  if (
+    correspondence.dispatchedHashSource !== undefined &&
+    correspondence.dispatchedHashSource !== "gateway" &&
+    correspondence.dispatchedHashSource !== "connector-wire"
+  ) {
+    failures.push(`dispatchedHashSource ${String(correspondence.dispatchedHashSource)} is not a known source`);
+  }
+
   if (authorization.policyContentHash !== undefined && correspondence.policyContentHash !== authorization.policyContentHash) {
     failures.push("policyContentHash differs from the authorization");
   }

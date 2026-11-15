@@ -123,6 +123,15 @@ def test_an_unchecked_execution_beside_a_passed_one_prevents_passed():
     assert report["status"] == "not_checked"
 
 
+def test_an_unknown_dispatched_hash_source_fails_and_the_known_sources_pass():
+    assert check_execution_correspondence(correspondence(dispatchedHashSource="gateway"), AUTH) == {"status": "passed"}
+    assert check_execution_correspondence(correspondence(dispatchedHashSource="connector-wire"), AUTH) == {"status": "passed"}
+    assert check_execution_correspondence(correspondence(dispatchedHashSource="other"), AUTH) == {
+        "status": "failed",
+        "failures": ["dispatchedHashSource other is not a known source"],
+    }
+
+
 def test_the_record_is_not_modified():
     value = record([{"executionId": "e-1", "evidence": {"correspondence": correspondence()}}])
     before = copy.deepcopy(value)

@@ -97,6 +97,15 @@ test("an unchecked execution beside a passed one prevents passed", () => {
   assert.equal(report.status, "not_checked");
 });
 
+test("an unknown dispatched hash source fails, and the two known sources pass", () => {
+  assert.equal(checkExecutionCorrespondence(correspondence({ dispatchedHashSource: "gateway" }), AUTH).status, "passed");
+  assert.equal(checkExecutionCorrespondence(correspondence({ dispatchedHashSource: "connector-wire" }), AUTH).status, "passed");
+  assert.deepEqual(checkExecutionCorrespondence(correspondence({ dispatchedHashSource: "other" }), AUTH), {
+    status: "failed",
+    failures: ["dispatchedHashSource other is not a known source"],
+  });
+});
+
 test("the record is not modified", () => {
   const input = record([{ executionId: "e-1", evidence: { correspondence: correspondence() } }]);
   const before = JSON.stringify(input);

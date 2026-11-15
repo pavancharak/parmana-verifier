@@ -43,6 +43,12 @@ def check_execution_correspondence(correspondence, authorization):
     elif correspondence["dispatchedContentHash"] != correspondence["authorizedContentHash"]:
         failures.append("dispatched content differs from the authorized content")
 
+    # The source of the dispatched hash is recorded for review. Only the two known values are accepted when the field
+    # is present. Whether the two sources must agree is an owner decision; this check does not compare them.
+    source = correspondence.get("dispatchedHashSource")
+    if source is not None and source not in ("gateway", "connector-wire"):
+        failures.append(f"dispatchedHashSource {source} is not a known source")
+
     if "policyContentHash" in authorization and correspondence.get("policyContentHash") != authorization["policyContentHash"]:
         failures.append("policyContentHash differs from the authorization")
 
