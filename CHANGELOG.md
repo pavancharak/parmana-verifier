@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-11-15
+
 - Changes the correspondence result for a record that embeds no authorization from `failed` to `not_checked`, in both verifiers. Nothing was compared, so it is not a mismatch. `valid`, the exit code and every other check are unchanged. A record with no authorization is never reported as `passed`. parmana-core's offline check (`ExecutionCorrespondenceOffline`) makes the same change.
 - Fixes the Python quick start. `test/vectors/trust-python-ed25519.json` now sets `allowLegacyV2`, because its record is schema version 2 and the verifier refuses that by default. Without it, the command in `python/README.md` exited 1 with `valid: false`. Adds quick-start tests in both suites (`test/quickstart.test.mjs`, `python/tests/test_quickstart.py`).
 - Adds `test/vectors/parmana-core-generated`: 22 cases over records exported from parmana-core at `7e9a54fb`, covering schema version 3 (valid), schema version 2 and single-algorithm (refused by default, accepted with the allowances), tampered copies, and trust-file edits. The Node and Python suites read the same cases and must agree.
