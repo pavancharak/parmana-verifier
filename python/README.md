@@ -49,10 +49,10 @@ parmana-verify test/vectors/record-python-ed25519.json test/vectors/trust-python
 ```
 
 ```json
-{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true}}
+{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true},"correspondence":{"status":"failed","executions":[{"executionId":null,"result":{"status":"failed","failures":["no authorization is embedded in the trust record"]}}]}}
 ```
 
-The exit code is `0`. Change the record and it is rejected:
+The exit code is `0`. The `correspondence` report is `failed` here because this legacy record embeds no authorization, so there is nothing to compare. The report does not change `valid` or the exit code. Change the record and it is rejected:
 
 ```sh
 parmana-verify test/vectors/record-python-ed25519-tampered.json test/vectors/trust-python-ed25519.json

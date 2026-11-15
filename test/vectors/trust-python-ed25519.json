@@ -10,5 +10,6 @@
       "compromised": false
     }
   ],
-  "allowLegacyOnly": true
+  "allowLegacyOnly": true,
+  "allowLegacyV2": true
 }

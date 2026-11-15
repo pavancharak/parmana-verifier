@@ -181,11 +181,15 @@ Run the tests on Node 24. On Node 22 or any runtime without ML-DSA-65, the hybri
 
 The suite covers the legacy signature and hash, hybrid signatures, schema version 3 coverage, the trust rules, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
 
+Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and `python/tests/test_parmana_core_records.py`. They use `test/vectors/parmana-core-generated/cases.json`: 22 cases over records exported at parmana-core `7e9a54fb`, with tampered copies and trust-file edits. Both verifiers must agree on every case. The quick-start record in `python/README.md` is tested in `test/quickstart.test.mjs` and `python/tests/test_quickstart.py`.
+
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
 - For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
-- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected. Check that `coverage` is `full` when that matters.
+- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected.
+- `coverage` is `full` only when the hybrid signatures also verify. It does not report the schema version. A schema version 3 record that fails the hybrid check reports `legacy`, and an Ed25519-only failure can report `full` alongside `valid: false`. Read `valid` for the verdict.
+- `checks.signature` is the legacy top-level signature, which covers only the seven legacy fields. A change to `updatedAt` in a schema version 3 record is caught by the hybrid signatures alone, so `checks.signature` stays `true` (pinned by `test/parmana-core-records.test.mjs`).
 - A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this. With no cutover set, a record with no hybrid envelope is refused unless the trust file sets `allowLegacyOnly` to `true` (see "Records with no hybrid envelope" above).
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Fixes the Python quick start. `test/vectors/trust-python-ed25519.json` now sets `allowLegacyV2`, because its record is schema version 2 and the verifier refuses that by default. Without it, the command in `python/README.md` exited 1 with `valid: false`. Adds quick-start tests in both suites (`test/quickstart.test.mjs`, `python/tests/test_quickstart.py`).
+- Adds `test/vectors/parmana-core-generated`: 22 cases over records exported from parmana-core at `7e9a54fb`, covering schema version 3 (valid), schema version 2 and single-algorithm (refused by default, accepted with the allowances), tampered copies, and trust-file edits. The Node and Python suites read the same cases and must agree.
+- Documents what `coverage` means (full only when the hybrid signatures verify) and what `checks.signature` covers (the legacy fields only). No verification behaviour changed.
 - Adds an execution correspondence report to the output of both verifiers (Node `src/correspondence.mjs`, Python `parmana_verifier/correspondence.py`). For each execution it checks that the dispatched content hash equals the authorized one, and that the nonce, the business transaction hash, the policy content hash and the authority grant match the record's authorization. Statuses: `passed`, `failed`, and `not_checked`, which is never reported as passed. It mirrors parmana-core's offline check (`ExecutionCorrespondenceOffline`, on its status-events branch, not yet merged).
 - The report does not change `valid`, the exit code, or any existing check. The command-line output gains a `correspondence` field.
 - Version number: not changed here. The release version is a decision for the owner.
