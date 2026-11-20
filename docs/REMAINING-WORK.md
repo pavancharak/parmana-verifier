@@ -13,8 +13,7 @@ Status as of 2026-11-15.
 
 ## Open
 
-- **Schema v3 records (issue #27).** The fixtures that issue asked for now exist: `test/vectors/parmana-core-generated` holds records exported from parmana-core `7e9a54fb` through its HTTP path. The export harness is not committed to parmana-core, so the fixtures are a snapshot, not a regenerating script. Closing issue #27 is the owner's decision.
-- **Default schema in parmana-core.** On `claude/default-schema-v3` (not merged), parmana-core emits schema version 3 by default. Until that merges, a parmana-core record from a default configuration is schema version 2, which this verifier refuses unless the trust file sets `allowLegacyV2`.
+- **Schema v3 records (issue #27).** Closed on 2026-11-15. Both verifiers read and verify schema version 3, and the fixtures are in `test/vectors/parmana-core-generated`. The fixtures were exported by parmana-core's test harness, not by the deployed server.
 - **Node version.** ML-DSA-65 (`dilithium3`) checks need Node 24 or later with OpenSSL 3.5 or later. On an earlier Node, a record signed with `dilithium3` is refused with an error that says so, not accepted.
 
 ## Notes for the next change
