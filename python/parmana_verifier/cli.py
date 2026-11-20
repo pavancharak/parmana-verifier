@@ -12,6 +12,7 @@ import json
 import sys
 
 from .correspondence import check_trust_record_correspondence
+from .policy_v2 import verify_evidence_chain, verify_review_outcome
 from .trust import key_fingerprint, parse_trust_policy
 from .verify import result_to_json, verify_execution_trust_record
 
@@ -46,6 +47,32 @@ def main(argv=None):
             print(f"key error: {error}", file=sys.stderr)
             return 2
 
+    if args and args[0] == "policy-v2":
+        # evidence.json: {"records": [...], "outcome": {...} (optional)}
+        if len(args) != 2:
+            print(USAGE, file=sys.stderr)
+            return 2
+        try:
+            file = _read_json(args[1])
+        except (OSError, ValueError) as error:
+            print(f"read error: {error}", file=sys.stderr)
+            return 2
+        if not isinstance(file, dict) or not isinstance(file.get("records"), list):
+            print('read error: the file must hold a "records" list.', file=sys.stderr)
+            return 2
+        chain = verify_evidence_chain(file["records"])
+        outcome = (
+            verify_review_outcome(file["outcome"], file["records"])
+            if "outcome" in file
+            else None
+        )
+        valid = chain["valid"] and (outcome is None or outcome["valid"])
+        report = {"valid": valid, "chain": chain}
+        if outcome is not None:
+            report["outcome"] = outcome
+        print(json.dumps(report, separators=(",", ":")))
+        return 0 if valid else 1
+
     if len(args) != 2 or not args[0] or not args[1]:
         print(USAGE, file=sys.stderr)
         return 2
@@ -63,8 +90,6 @@ def main(argv=None):
         proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only, allow_legacy_v2=policy.allow_legacy_v2
     )
     # The correspondence report does not change "valid" or the exit code (see correspondence.py).
-    import json
-
     report = dict(json.loads(result_to_json(result)))
     report["correspondence"] = check_trust_record_correspondence(proof)
     print(json.dumps(report, separators=(",", ":")))
