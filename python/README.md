@@ -82,7 +82,7 @@ parmana-verify key-fingerprint <public-key.pem>
 - `verify` prints one line of JSON and exits `0` when the record is valid, `1` when it is invalid, and `2` for a usage or read error.
 - `key-fingerprint` prints the `sha256:...` value to pin in a trust file.
 
-The output has the same fields as the Node CLI: `valid`, `coverage`, `errors` and `checks`.
+The output has the same fields as the Node CLI: `valid`, `coverage`, `errors`, `checks` and `correspondence`.
 
 ## Python API
 

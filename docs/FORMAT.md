@@ -61,15 +61,19 @@ A file that breaks any of these rules is rejected as a read error (exit code 2).
 The command prints one line of JSON:
 
 ```json
-{"valid":true,"errors":[],"checks":{"trustRecordHash":true,"signature":true,"hybridSignatures":true}}
+{"valid":true,"coverage":"full","errors":[],"checks":{"trustRecordHash":true,"signature":true,"hybridSignatures":true},"correspondence":{"status":"not_checked","executions":[{"executionId":"ex_1","result":{"status":"not_checked","reason":"no authorization is embedded in the trust record"}}]}}
 ```
+
+That is the bundled schema version 3 vector. Its correspondence report is `not_checked` because the vector embeds no authorization (see the `correspondence` bullet below, and the README).
 
 - `valid`: `true` only if every check that ran passed.
 - `errors`: a list of plain-text reasons, empty when valid.
 - `checks.trustRecordHash`: whether the hash matched.
 - `checks.signature`: whether the legacy `signature` verified.
 - `checks.hybridSignatures`: present only when `signatures` is present, or when `schemaVersion` is `3` (then it is `false` if there is no `signatures` array).
-- `coverage`: `"full"` when a `schemaVersion` `3` envelope verifies, and `"legacy"` otherwise. A caller that needs the whole record covered must reject `legacy`.
+- `coverage`: `"full"` only when the record has `schemaVersion` `3` **and** its hybrid signatures verify. Otherwise `"legacy"`, including a schema version 3 record whose hybrid check fails. `coverage` does not report the schema version. Read `valid` for the verdict, and reject `legacy` where the whole record must be covered. An Ed25519-only failure can report `"full"` alongside `valid: false`, because `coverage` describes only the hybrid envelope.
+- `checks.signature` is the legacy top-level signature. It covers only the seven legacy fields, so a change to `updatedAt` in a schema version 3 record is caught by `checks.hybridSignatures` alone, and `checks.signature` stays `true`.
+- `correspondence`: a separate report on whether what was dispatched is what was authorized. It is `passed` only when every execution was checked and corresponds. `failed` means a field is missing, different or malformed. `not_checked` means nothing was compared: no correspondence fields, no evidence, or no authorization embedded in the record. `not_checked` is never reported as `passed`, and it is not a mismatch. The report does not change `valid` or the exit code. See the README section [Execution correspondence](../README.md#execution-correspondence).
 
 If the record is not a JSON object, the result is `{"valid":false,"errors":["record must be a JSON object"],"checks":{}}`.
 
