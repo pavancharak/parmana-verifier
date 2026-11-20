@@ -194,6 +194,7 @@ Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.
+- It checks Policy version 2 evidence only as a chain and an outcome hash, with `parmana-verify policy-v2`. It does not evaluate the decisions in it.
 - It does not confirm that the action described by the record was executed.
 - The records in `test/vectors/` were produced by the Parmana signing code and are test material only. They show that the checks agree with that code; they are not an independent specification.
 

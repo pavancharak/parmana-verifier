@@ -1,0 +1,91 @@
+{
+  "records": [
+    {
+      "recordId": "ev-1",
+      "decidedAt": "2026-11-16T09:00:00.000Z",
+      "request": {
+        "capability": "erp:pay-invoice",
+        "transactionId": "txn-ev-1",
+        "target": "INV-1001",
+        "parameters": {
+          "amount": 500
+        },
+        "signals": {
+          "riskScore": 70
+        }
+      },
+      "policyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "decision": {
+        "outcome": "REVIEW",
+        "reason": "High risk.",
+        "policy": {
+          "capability": "erp:pay-invoice",
+          "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "values": {}
+      },
+      "inputs": {
+        "answers": {},
+        "approvals": {}
+      },
+      "snapshot": {
+        "registerView": {},
+        "approvers": [],
+        "thresholds": {}
+      },
+      "prevHash": "genesis",
+      "hash": "a3ed8d7dfa07fae46502265e04b5fec467b9e19a84cf0a7aa22e49d613eeca5a"
+    },
+    {
+      "recordId": "ev-2",
+      "decidedAt": "2026-11-16T09:00:00.000Z",
+      "request": {
+        "capability": "erp:pay-invoice",
+        "transactionId": "txn-ev-2",
+        "target": "INV-1001",
+        "parameters": {
+          "amount": 500
+        },
+        "signals": {
+          "riskScore": 70
+        }
+      },
+      "policyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "decision": {
+        "outcome": "REJECT",
+        "reason": "High risk.",
+        "policy": {
+          "capability": "erp:pay-invoice",
+          "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "values": {}
+      },
+      "inputs": {
+        "answers": {},
+        "approvals": {}
+      },
+      "snapshot": {
+        "registerView": {},
+        "approvers": [],
+        "thresholds": {}
+      },
+      "prevHash": "a3ed8d7dfa07fae46502265e04b5fec467b9e19a84cf0a7aa22e49d613eeca5a",
+      "hash": "47687f50c239243857dd8102f07506d0f8d7bf9b6b9c26600b9a0f24ac34a549"
+    }
+  ],
+  "outcome": {
+    "reviewId": "review-1",
+    "outcome": "APPROVED",
+    "decidedBy": [
+      "reviewer-a",
+      "reviewer-b"
+    ],
+    "digest": "0804fefc67f255d2718233448fea9d012b135bd6b7796fcc611a0c7c6a20ebda",
+    "at": "2026-11-16T09:00:00.000Z",
+    "decisionRecord": {
+      "recordId": "ev-1",
+      "hash": "a3ed8d7dfa07fae46502265e04b5fec467b9e19a84cf0a7aa22e49d613eeca5a"
+    },
+    "outcomeHash": "77a90b9544496be2fdce23de7819181abac65df06110b540e397e146a835ddce"
+  }
+}

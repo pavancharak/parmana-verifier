@@ -132,3 +132,15 @@ A record with no hybrid envelope (no `signatures` array) is accepted only in the
 - no `hybridRequiredFrom` is set and `allowLegacyOnly` is `true`.
 
 In every other case it is invalid. The error names the missing envelope and the two settings that would accept it.
+
+## Policy version 2 evidence (`parmana-verify policy-v2 <evidence.json>`)
+
+The input is an object with a `records` list, the decision records in order, and optionally an `outcome`, a finished review.
+
+- **Evidence record:** `hash` is the lowercase hex SHA-256 of the canonical bytes of the record with `hash` set to `""`. `prevHash` is the `hash` of the record before it, or `"genesis"` for the first.
+- **Review outcome:** `outcomeHash` is the lowercase hex SHA-256 of the canonical bytes of `reviewId`, `outcome`, `decidedBy`, `digest`, `at` and `decisionRecord`. `decisionRecord` names the decision it finished, by `recordId` and `hash`. If the chain is given, that record must be in it, with the same hash.
+
+The output is one line of JSON. `valid` is true only if the chain and the outcome, when present, are valid. Exit codes are as for `verify`.
+
+These checks do not evaluate a policy, do not confirm a source's answer, and do not confirm that anything was released.
+
