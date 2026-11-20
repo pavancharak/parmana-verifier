@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: `parmana-verify policy-v2` checks a Policy version 2 evidence chain and a review outcome that refers to a decision in it. The checks are the same hashes parmana-core writes; the vectors in `test/vectors/policy-v2` were produced by parmana-core. The Python package does not have this command yet.
+
 ## [2.0.3] - 2026-11-15
 
 - Changes the correspondence result for a record that embeds no authorization from `failed` to `not_checked`, in both verifiers. Nothing was compared, so it is not a mismatch. `valid`, the exit code and every other check are unchanged. A record with no authorization is never reported as `passed`. parmana-core's offline check (`ExecutionCorrespondenceOffline`) makes the same change.
