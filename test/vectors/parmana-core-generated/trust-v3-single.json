@@ -4,8 +4,8 @@
     {
       "keyId": "single-record-ed",
       "algorithm": "ed25519",
-      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAdVb3c1R+ICNlV691GYYdrf6fTHT6HT1Jc00WJF7NWrI=\n-----END PUBLIC KEY-----\n",
-      "fingerprint": "sha256:8e135761055c41b8c7ffdb53643fc23e9ada69ccbd82842ed11433927179d9bc",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASLCYwV3TL3tRvZ1T9RZZWM+WvZFdUfzA77+6LGzCubM=\n-----END PUBLIC KEY-----\n",
+      "fingerprint": "sha256:24480a59c8b7d9cdeef03cf231932e7275bd98e52e1ba53b2b7a34e37cf84bc0",
       "validFrom": "2000-01-01T00:00:00.000Z",
       "validUntil": null,
       "compromised": false

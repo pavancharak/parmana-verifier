@@ -9,7 +9,6 @@
       "amount": 100
     }
   },
-  "overrides": [],
   "executions": [],
   "createdAt": "2026-11-21T00:00:00.000Z",
   "updatedAt": "2026-11-21T00:00:00.000Z",
@@ -19,7 +18,7 @@
     {
       "algorithm": "ed25519",
       "keyId": "single-record-ed",
-      "signature": "cLj1WPk9aUgWSzZqQTvrxps6WgEX8EZC5m4iypurRy22uMWbk7NnwztLtfRopd8QJTwCbsqfnpxnFWBg6j4AAA=="
+      "signature": "eGi6ISiRT/tiln/W7yXaXsGrtH+O++olih+NIjqbwwIxThkq0GUHhYEgjf+Pjv8puGgHz2+r8fJByKoxIFQjDA=="
     }
   ]
 }
