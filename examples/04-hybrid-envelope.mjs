@@ -1,52 +1,33 @@
-// Inspect a hybrid signature envelope: two entries (Ed25519 and ML-DSA-65),
-// both verified over the same canonical bytes plus schemaVersion.
-//
-// Needs Node 24 with OpenSSL 3.5 (ML-DSA-65). On other runtimes this example
-// explains what it would check and exits 0.
+// Inspect a hybrid signatures array: two entries (Ed25519 and ML-DSA-65), each verified over the whole record.
 // Run: node examples/04-hybrid-envelope.mjs
-import { generateKeyPairSync } from "node:crypto";
-import { parseTrustSet } from "../src/trust.mjs";
+import { parseTrustPolicy } from "../src/trust.mjs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { caught, heading, loadVector } from "./shared.mjs";
+import { caught, decision, heading, loadVector } from "./shared.mjs";
 
-const mlDsaSupported = (() => {
-  try {
-    generateKeyPairSync("ml-dsa-65");
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const hybrid = loadVector("parmana-core-generated/v3-hybrid-record.json");
+const hybridPolicy = parseTrustPolicy(loadVector("parmana-core-generated/trust-v3-hybrid.json"));
+const single = loadVector("parmana-core-generated/v3-single-record.json");
+const singlePolicy = parseTrustPolicy(loadVector("parmana-core-generated/trust-v3-single.json"));
 
-heading("What a hybrid envelope is");
-console.log("A record carries the legacy signature plus a signatures array, one entry per algorithm.");
-console.log("Each entry is verified over the canonical fields plus schemaVersion (default 2).");
-console.log("A record is valid only if every entry verifies, at least two entries are present,");
-console.log("and no algorithm repeats.");
-
-if (!mlDsaSupported) {
-  heading("Skipped");
-  console.log("This runtime has no ML-DSA-65 support. Re-run with Node 24 and OpenSSL 3.5 or later.");
-  process.exitCode = 0;
-} else {
-  const trust = parseTrustSet(loadVector("trust.json"));
-
-  heading("1. A valid hybrid record");
-  const valid = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), trust, { allowLegacyV2: true });
-  for (const entry of loadVector("record-explicit-v2.json").signatures) {
-    console.log(`  ${entry.algorithm.padEnd(10)} keyId=${entry.keyId}`);
-  }
-  console.log(`${valid.checks.hybridSignatures ? "ACCEPTED" : "REFUSED "}  both entries verify`);
-
-  heading("2. The same envelope with one entry removed");
-  const single = verifyExecutionTrustRecord(loadVector("record-single-entry.json"), trust, { allowLegacyV2: true });
-  console.log(`${caught(single.valid)}  a single-entry envelope is refused`);
-  console.log(`      reason: ${single.errors.join(" ")}`);
-
-  heading("3. Changing schemaVersion after signing");
-  const v3 = verifyExecutionTrustRecord(loadVector("record-schema-v3.json"), trust, { allowLegacyV2: true });
-  console.log(`${caught(v3.checks.hybridSignatures)}  changed schemaVersion is refused by the hybrid entries`);
-
-  // Exit 0 when the valid record passes and the two tampered records are refused.
-  process.exitCode = valid.valid && !single.valid && !v3.valid ? 0 : 1;
+heading("1. The hybrid envelope");
+console.log("The record carries one signatures array, one entry per algorithm. Each entry signs the same message:");
+console.log("every top-level field except signatures, schemaVersion, verifications and receipts, plus schemaVersion.");
+for (const entry of hybrid.signatures) {
+  console.log(`  ${entry.algorithm.padEnd(10)} keyId=${entry.keyId}`);
 }
+const hybridResult = verifyExecutionTrustRecord(hybrid, hybridPolicy.keys, { hybridRequiredFrom: hybridPolicy.hybridRequiredFrom });
+console.log(`${decision(hybridResult.valid)}  hybrid record`);
+
+heading("2. A single-entry record, before and after a cutover");
+const before = verifyExecutionTrustRecord(single, singlePolicy.keys, {});
+const after = verifyExecutionTrustRecord(single, singlePolicy.keys, { hybridRequiredFrom: "2026-01-01T00:00:00.000Z" });
+console.log(`${decision(before.valid)}  single entry, no cutover (single mode)`);
+console.log(`${decision(after.valid)}  single entry, cutover ${"2026-01-01T00:00:00.000Z"} (both entries required)`);
+if (!after.valid) console.log(`      reason: ${after.errors[0]}`);
+
+heading("3. Relabelling the schema version");
+const relabelled = verifyExecutionTrustRecord({ ...hybrid, schemaVersion: 2 }, hybridPolicy.keys);
+console.log(`${caught(relabelled.valid)}  schemaVersion 2 is refused, whatever the signatures`);
+console.log(`      reason: ${relabelled.errors[0]}`);
+
+process.exitCode = hybridResult.valid && before.valid && !after.valid && !relabelled.valid ? 0 : 1;

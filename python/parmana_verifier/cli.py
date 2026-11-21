@@ -86,9 +86,7 @@ def main(argv=None):
         print(f"read error: {error}", file=sys.stderr)
         return 2
 
-    result = verify_execution_trust_record(
-        proof, policy.keys, policy.hybrid_required_from, allow_legacy_only=policy.allow_legacy_only, allow_legacy_v2=policy.allow_legacy_v2
-    )
+    result = verify_execution_trust_record(proof, policy.keys, policy.hybrid_required_from)
     # The correspondence report does not change "valid" or the exit code (see correspondence.py).
     report = dict(json.loads(result_to_json(result)))
     report["correspondence"] = check_trust_record_correspondence(proof)

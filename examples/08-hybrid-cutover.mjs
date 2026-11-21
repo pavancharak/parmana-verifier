@@ -1,44 +1,25 @@
-// The hybrid cutover. The trust file can say that records created at or after a
-// time must carry a valid hybrid envelope. The cutover adds its own refusal to a
-// record created after it. It never makes an invalid record valid, and it does
-// not touch a record created before it.
+// The cutover (hybridRequiredFrom, ADR-0016): a single-entry record is accepted before the cutover and refused at
+// or after it, where both hybrid signatures are required.
 // Run: node examples/08-hybrid-cutover.mjs
 import { parseTrustPolicy } from "../src/trust.mjs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
 import { decision, heading, loadVector } from "./shared.mjs";
 
-const CUTOVER_REASON = "hybridRequiredFrom";
-const record = loadVector("record-single-entry.json");
-const { keys } = parseTrustPolicy(loadVector("trust-whole-record.json"));
+const record = loadVector("parmana-core-generated/v3-single-record.json");
+const { keys } = parseTrustPolicy(loadVector("parmana-core-generated/trust-v3-single.json"));
+const createdAt = record.createdAt;
 
-function check(cutover) {
-  const policy = parseTrustPolicy({ keys: [...keys.values()], hybridRequiredFrom: cutover });
-  return verifyExecutionTrustRecord(record, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyV2: true });
+function check(label, hybridRequiredFrom) {
+  const result = verifyExecutionTrustRecord(record, keys, hybridRequiredFrom ? { hybridRequiredFrom } : {});
+  console.log(`${decision(result.valid).padEnd(9)} ${label}`);
+  if (!result.valid) console.log(`      reason: ${result.errors[0]}`);
+  return result.valid;
 }
 
-heading("1. Cutover before the record was created");
-const past = check("2026-01-01T00:00:00.000Z");
-console.log(`${decision(past.valid)}  record created ${record.createdAt}, cutover 2026-01-01`);
-console.log(`cutover reason given: ${past.errors.some((e) => e.includes(CUTOVER_REASON))}`);
+heading(`Single-entry record created ${createdAt}`);
+const none = check("no cutover: single mode accepts one entry", undefined);
+const earlier = check("cutover 2026-01-01T00:00:00Z (before the record): both entries required", "2026-01-01T00:00:00Z");
+const later = check("cutover 2999-01-01T00:00:00Z (after the record): not yet required", "2999-01-01T00:00:00Z");
 
-heading("2. Cutover after the record was created");
-const future = check("2027-01-01T00:00:00.000Z");
-console.log(`${decision(future.valid)}  record created ${record.createdAt}, cutover 2027-01-01`);
-console.log(`cutover reason given: ${future.errors.some((e) => e.includes(CUTOVER_REASON))}`);
-console.log(`other reasons: ${future.errors.filter((e) => !e.includes(CUTOVER_REASON)).length}`);
-
-heading("3. No cutover set");
-const none = verifyExecutionTrustRecord(record, keys, { allowLegacyV2: true });
-console.log(`${decision(none.valid)}  no cutover in the trust file`);
-console.log(`errors identical to case 2: ${JSON.stringify(none.errors) === JSON.stringify(future.errors.filter((e) => !e.includes(CUTOVER_REASON)))}`);
-
-const ok =
-  !past.valid &&
-  past.errors.some((e) => e.includes(CUTOVER_REASON)) &&
-  !future.valid &&
-  !future.errors.some((e) => e.includes(CUTOVER_REASON)) &&
-  JSON.stringify(none.errors) === JSON.stringify(future.errors);
-if (!ok) {
-  throw new Error("cutover example did not behave as described");
-}
-console.log("\nAll checks in this example behaved as described.");
+const ok = none && !earlier && later;
+process.exitCode = ok ? 0 : 1;

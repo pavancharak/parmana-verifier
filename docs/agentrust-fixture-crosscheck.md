@@ -1,5 +1,8 @@
 # Cross-check of AgenTrust Parmana fixtures with parmana-verifier
 
+> Note (2026-11-21): this cross-check was run against verifier 2.0.3. That version accepted the AgenTrust record only with `allowLegacyOnly` and `allowLegacyV2`. Decision D24 removed both flags and refuses schema version 2 records, so the same record and trust file are now refused. `test/agentrust-fixture.test.mjs` pins that refusal. The findings below describe the 2.0.3 behaviour and are not changed.
+
+
 Date: 2026-11-04
 
 ## Question

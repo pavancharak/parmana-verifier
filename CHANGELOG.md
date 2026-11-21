@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- **Breaking (decision D24): schema version 3 only.** Both verifiers accept only `schemaVersion` 3. Records with `schemaVersion` 2, or with none, are refused before any signature is read. The legacy top-level `signature` field is no longer read, and the `value` name of a signature entry is no longer accepted. No customer or vendor received an earlier record, so there is no migration path.
+- **Breaking: the `signatures` array is the whole-record signature.** It has one or two entries. Single mode uses one entry; hybrid uses two (Ed25519 and ML-DSA-65). A two-entry record is never accepted on one valid entry. `hybridRequiredFrom` (ADR-0016) requires both entries at or after the cutover, and one valid entry before it.
+- **Breaking: removed trust-file flags.** `allowLegacyOnly` and `allowLegacyV2` are refused with exit `2`. Remove them from trust files.
+- **Breaking: result fields.** `coverage` is removed. `checks.signature` and `checks.hybridSignatures` are replaced by `checks.signatures`. The Node and Python results have the same shape.
+- The schema version 3 message covers every top-level field except `signatures`, `schemaVersion`, `verifications` and `receipts`, and includes `updatedAt`.
+- Replaces the vectors in `test/vectors/parmana-core-generated` with two records signed by parmana-core's own signing code (hybrid and single mode). `cases.json` now has 16 cases, read by both suites. The Node suite's `test/vectors.test.mjs` is removed; its cases are in `test/whole-record.test.mjs` and `test/parmana-core-records.test.mjs`.
+- Replaces the quick-start record with the single-mode v3 record. Examples 01 to 09 are rewritten for schema version 3 and run in `npm run examples`.
+- Documents: `docs/FORMAT.md` and `docs/OPERATING-MODES.md` describe single mode and the cutover only. `test/vectors/README.md` lists the current vectors.
+- `docs/agentrust-fixture-crosscheck.md` and `docs/SECURITY-REVIEW.md` are dated records of earlier checks. Notes at the top say which parts no longer apply.
+
 - Added: `parmana-verify policy-v2` checks a Policy version 2 evidence chain and a review outcome that refers to a decision in it. The checks are the same hashes parmana-core writes; the vectors in `test/vectors/policy-v2` were produced by parmana-core. The Python package does not have this command yet.
 
 ## [2.0.3] - 2026-11-15

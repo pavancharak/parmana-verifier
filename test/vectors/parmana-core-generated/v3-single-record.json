@@ -1,0 +1,25 @@
+{
+  "trustRecordId": "single-record-v3-fixture",
+  "businessTransactionId": "single-record-v3-fixture",
+  "transaction": {
+    "businessTransactionId": "single-record-v3-fixture",
+    "status": "RECEIVED",
+    "createdAt": "2026-11-21T00:00:00.000Z",
+    "signals": {
+      "amount": 100
+    }
+  },
+  "overrides": [],
+  "executions": [],
+  "createdAt": "2026-11-21T00:00:00.000Z",
+  "updatedAt": "2026-11-21T00:00:00.000Z",
+  "schemaVersion": 3,
+  "trustRecordHash": "bb53b797c5a8607273112bc31641a2680d325d0bcd7a21cb10338a3ffb551100",
+  "signatures": [
+    {
+      "algorithm": "ed25519",
+      "keyId": "single-record-ed",
+      "signature": "g1K9VnbFVtEjKt2ARme+4hg5D2OW7nqsFz/dpe9L6nHni2w4+QgV/EpuVoaT9rVxjpliniKMA01KfdsEXPMnCQ=="
+    }
+  ]
+}

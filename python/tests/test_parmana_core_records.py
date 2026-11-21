@@ -1,5 +1,6 @@
 # Verifies records produced by parmana-core, through the Python CLI. The expectations are in
-# test/vectors/parmana-core-generated/cases.json, which the Node suite reads too. Test key material only.
+# test/vectors/parmana-core-generated/cases.json, which the Node suite reads too. Schema version 3 only (D24).
+# Test key material only.
 import copy
 import json
 import os
@@ -46,6 +47,7 @@ def materialize(spec):
     for op in spec.get("tamper", []):
         set_path(record, op["path"], op["value"])
     trust = apply_trust_edits(json.loads((FIXTURES / spec["trust"]).read_text()), spec.get("trustEdits"))
+    trust = {**trust, **spec.get("trustFields", {})}
     return record, trust
 
 
@@ -87,7 +89,6 @@ def test_python_verifier_matches_expectation(spec, tmp_path):
 
     assert result["valid"] is expect["valid"], result["errors"]
     assert exit_code == (0 if expect["valid"] else 1)
-    assert result["coverage"] == expect["coverage"]
     for check, value in expect.get("checks", {}).items():
         assert result["checks"].get(check) is value, (check, result["checks"])
     if "correspondence" in expect:
@@ -107,7 +108,6 @@ def test_node_and_python_agree(spec, tmp_path):
 
     assert py_exit == node_exit
     assert py["valid"] == node["valid"]
-    assert py["coverage"] == node["coverage"]
     assert py["checks"] == node["checks"]
     assert py["correspondence"] == node["correspondence"]
     assert len(py["errors"]) == len(node["errors"])

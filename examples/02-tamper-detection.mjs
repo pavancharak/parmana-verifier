@@ -1,44 +1,36 @@
-// Show what changes when a signed record is altered, and why re-hashing the
-// altered record does not help an attacker.
-//
+// Change a field after signing, then show what catches it. A valid hash alone proves nothing.
 // Run: node examples/02-tamper-detection.mjs
+import { parseTrustPolicy } from "../src/trust.mjs";
+import { verifyExecutionTrustRecord } from "../src/verify.mjs";
+import { caught, heading, loadVector } from "./shared.mjs";
 import { createHash } from "node:crypto";
 import { canonicalBytes } from "../src/canonical.mjs";
-import { parseTrustSet } from "../src/trust.mjs";
-import { canonicalTrustRecord, verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { caught, heading, loadVector } from "./shared.mjs";
+import { canonicalTrustRecord } from "../src/verify.mjs";
 
-const trust = parseTrustSet(loadVector("trust.json"));
-const original = loadVector("record-implicit-v2.json");
+const original = loadVector("parmana-core-generated/v3-hybrid-record.json");
+const { keys } = parseTrustPolicy(loadVector("parmana-core-generated/trust-v3-hybrid.json"));
 
-heading("1. The original record");
-const before = verifyExecutionTrustRecord(original, trust, { allowLegacyV2: true });
-console.log(`${before.valid ? "VALID" : "INVALID"}  transaction.amount = ${original.transaction.amount}`);
+heading("1. The record as signed");
+const before = verifyExecutionTrustRecord(original, keys);
+console.log(before.valid ? "VALID" : `INVALID: ${before.errors.join(" ")}`);
 
-heading("2. Change the amount, keep the stored hash and signature");
+heading("2. Change the amount, keep the stored hash and signatures");
 const edited = structuredClone(original);
-edited.transaction.amount = 999999;
-const afterEdit = verifyExecutionTrustRecord(edited, trust, { allowLegacyV2: true });
+edited.transaction.signals.amount = 999;
+const afterEdit = verifyExecutionTrustRecord(edited, keys);
 console.log(`${caught(afterEdit.checks.trustRecordHash)}  trustRecordHash`);
-console.log(`${caught(afterEdit.checks.signature)}  signature`);
-console.log(`${caught(afterEdit.checks.hybridSignatures)}  hybrid signatures`);
-console.log(`Result: ${afterEdit.valid ? "VALID" : "INVALID"}`);
-for (const error of afterEdit.errors) console.log(`  - ${error}`);
+console.log(`${caught(afterEdit.checks.signatures)}  signatures`);
 
 heading("3. Change the amount and recompute the hash");
-// An attacker can recompute the hash. The signature still fails, because the
-// attacker does not hold the signing key.
 const rehashed = structuredClone(edited);
-rehashed.trustRecordHash = createHash("sha256")
-  .update(canonicalBytes(canonicalTrustRecord(rehashed)))
-  .digest("hex");
-const afterRehash = verifyExecutionTrustRecord(rehashed, trust, { allowLegacyV2: true });
-console.log(`${caught(afterRehash.checks.trustRecordHash)}  trustRecordHash (recomputed by the attacker)`);
-console.log(`${caught(afterRehash.checks.signature)}  signature (the attacker cannot produce this)`);
-console.log(`Result: ${afterRehash.valid ? "VALID" : "INVALID"}`);
+rehashed.trustRecordHash = createHash("sha256").update(canonicalBytes(canonicalTrustRecord(rehashed))).digest("hex");
+const afterRehash = verifyExecutionTrustRecord(rehashed, keys);
+console.log(`${caught(afterRehash.checks.trustRecordHash)}  trustRecordHash (the attacker can make this match)`);
+console.log(`${caught(afterRehash.checks.signatures)}  signatures (the attacker cannot produce these)`);
 
-heading("4. Why this matters");
-console.log("A valid hash alone proves nothing. The signature binds the content to a key you trust.");
+heading("4. Add a field the signer never saw");
+const extended = { ...original, addedAfterSigning: "x" };
+console.log(`${caught(verifyExecutionTrustRecord(extended, keys).checks.signatures)}  signatures`);
 
-// Exit 0 only when every tampered variant is rejected, which is the expected outcome.
-process.exitCode = !afterEdit.valid && !afterRehash.valid && before.valid ? 0 : 1;
+const ok = before.valid && !afterEdit.valid && !afterRehash.valid;
+process.exitCode = ok ? 0 : 1;

@@ -15,7 +15,8 @@ from parmana_verifier.timestamps import parse_timestamp
 from parmana_verifier.trust import parse_trust_policy, key_fingerprint
 from parmana_verifier.verify import canonical_trust_record, verify_execution_trust_record, hybrid_message
 
-VECTORS = Path(__file__).resolve().parents[2] / "test" / "vectors"
+# Schema version 3 only (decision D24). The vectors are signed by parmana-core's signing code; see test/vectors/README.md.
+VECTORS = Path(__file__).resolve().parents[2] / "test" / "vectors" / "parmana-core-generated"
 PREFIX = b"PARMANA-ED25519-LARGE-MESSAGE-V1\x00"
 
 
@@ -41,6 +42,7 @@ def trust_entry(key_id, private_key, **overrides):
 
 
 def signed_record(private_key, key_id, body, created="2026-06-01T12:00:00.000Z", mode="raw"):
+    """A schema version 3 record with one Ed25519 entry, signed over the whole-record message."""
     record = {
         "trustRecordId": "tr-1",
         "businessTransactionId": "btx-1",
@@ -49,15 +51,19 @@ def signed_record(private_key, key_id, body, created="2026-06-01T12:00:00.000Z",
         "overrides": None,
         "executions": [{"n": 1}],
         "createdAt": created,
+        "updatedAt": created,
+        "schemaVersion": 3,
     }
-    message = canonical_bytes(canonical_trust_record(record))
-    record["trustRecordHash"] = hashlib.sha256(message).hexdigest()
+    record["trustRecordHash"] = hashlib.sha256(canonical_bytes(canonical_trust_record(record))).hexdigest()
+    message = hybrid_message(record)
     signed = message if mode == "raw" else PREFIX + hashlib.sha512(message).digest()
-    record["signature"] = {
-        "algorithm": "ed25519",
-        "keyId": key_id,
-        "signature": base64.b64encode(private_key.sign(signed)).decode(),
-    }
+    record["signatures"] = [
+        {
+            "algorithm": "ed25519",
+            "keyId": key_id,
+            "signature": base64.b64encode(private_key.sign(signed)).decode(),
+        }
+    ]
     return record
 
 
@@ -65,86 +71,82 @@ def trust_map(*entries):
     return parse_trust_policy({"keys": list(entries)}).keys
 
 
-# Vectors: the same records the Node verifier tests against.
+# Vectors: the same records the Node verifier tests against (parmana-core-generated/).
 
-def test_tampered_record_fails_hash_and_signature():
-    trust = parse_trust_policy(load("trust.json"))
-    result = verify_execution_trust_record(load("record-tampered-amount.json"), trust.keys, allow_legacy_v2=True)
+def test_server_signed_v3_hybrid_record_verifies():
+    record = load("v3-hybrid-record.json")
+    trust = parse_trust_policy(load("trust-v3-hybrid.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["valid"] is True, result["errors"]
+    assert result["checks"] == {"trustRecordHash": True, "signatures": True}
+
+
+def test_server_signed_v3_single_record_verifies_with_one_entry():
+    record = load("v3-single-record.json")
+    trust = parse_trust_policy(load("trust-v3-single.json"))
+    assert len(record["signatures"]) == 1
+    assert verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)["valid"] is True
+
+
+def test_tampered_amount_fails_hash_and_signatures():
+    record = load("v3-hybrid-record.json")
+    record["transaction"]["signals"]["amount"] = 999
+    trust = parse_trust_policy(load("trust-v3-hybrid.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
     assert result["valid"] is False
     assert result["checks"]["trustRecordHash"] is False
-    assert result["checks"]["signature"] is False
+    assert result["checks"]["signatures"] is False
 
 
-def test_v2_hybrid_record_verifies_both_entries_including_ml_dsa():
-    # The Node verifier's vector. Both the ed25519 and the dilithium3 (ML-DSA-65) entries must verify.
-    trust = parse_trust_policy(load("trust.json"))
-    result = verify_execution_trust_record(load("record-explicit-v2.json"), trust.keys, allow_legacy_v2=True)
-    assert result["checks"] == {"trustRecordHash": True, "signature": True, "hybridSignatures": True}
-    assert result["valid"] is True
-    assert not any("dilithium3" in error for error in result["errors"])
+def test_changed_updated_at_is_caught_by_the_signatures_alone():
+    record = load("v3-hybrid-record.json")
+    record["updatedAt"] = "2026-02-01T00:00:00.000Z"
+    trust = parse_trust_policy(load("trust-v3-hybrid.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["checks"] == {"trustRecordHash": True, "signatures": False}
 
 
-def test_tampered_ml_dsa_signature_fails_the_hybrid_check():
-    trust = parse_trust_policy(load("trust.json"))
-    record = load("record-explicit-v2.json")
+def test_server_signed_record_with_a_field_added_after_signing_is_rejected():
+    record = {**load("v3-hybrid-record.json"), "addedAfterSigning": "x"}
+    trust = parse_trust_policy(load("trust-v3-hybrid.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["valid"] is False
+    assert result["checks"]["signatures"] is False
+
+
+def test_tampered_ml_dsa_signature_fails_the_check():
+    record = load("v3-hybrid-record.json")
     entry = next(item for item in record["signatures"] if item["algorithm"] == "dilithium3")
-    value = entry["signature"] if "signature" in entry else entry["value"]
-    flipped = ("A" if value[0] != "A" else "B") + value[1:]
-    if "signature" in entry:
-        entry["signature"] = flipped
-    else:
-        entry["value"] = flipped
-    result = verify_execution_trust_record(record, trust.keys, allow_legacy_v2=True)
-    assert result["checks"]["hybridSignatures"] is False
+    value = entry["signature"]
+    entry["signature"] = ("A" if value[0] != "A" else "B") + value[1:]
+    trust = parse_trust_policy(load("trust-v3-hybrid.json"))
+    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from)
+    assert result["checks"]["signatures"] is False
     assert result["valid"] is False
     assert any("signature verification failed" in error and "dilithium3" in error for error in result["errors"])
 
 
-def test_whole_record_v3_ed25519_entry_verifies_over_the_v3_message():
-    # The ed25519 entry of the v3 vector must verify over the whole-record
-    # message. A failure here would mean hybrid_message() builds different bytes.
-    record = load("record-whole-record-v3.json")
-    trust = parse_trust_policy(load("trust-whole-record.json"))
-    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from, allow_legacy_v2=True)
-    assert not any("signature verification failed" in error for error in result["errors"])
-    ed_entry = next(entry for entry in record["signatures"] if entry["algorithm"] == "ed25519")
-    assert ed_entry["keyId"] in trust.keys
-    assert hybrid_message(record, 3)
-
-
-def test_server_signed_v3_hybrid_record_verifies_with_full_coverage():
-    # Generated by parmana-core scripts/generate-whole-record-v3-fixture.ts with
-    # the server's signing code: both the Ed25519 and the ML-DSA-65 entries must
-    # verify over the whole-record message.
-    record = load("record-server-v3.json")
-    trust = parse_trust_policy(load("trust-server-v3.json"))
-    result = verify_execution_trust_record(record, trust.keys, trust.hybrid_required_from, allow_legacy_v2=True)
-    assert result["valid"] is True, result["errors"]
-    assert result["checks"]["hybridSignatures"] is True
-    assert result["coverage"] == "full"
-
-
-def test_server_signed_v3_hybrid_record_rejects_a_field_added_after_signing():
-    record = load("record-server-v3.json")
-    trust = parse_trust_policy(load("trust-server-v3.json"))
-    tampered = {**record, "addedAfterSigning": "x"}
-    result = verify_execution_trust_record(tampered, trust.keys, trust.hybrid_required_from, allow_legacy_v2=True)
+def test_schema_version_2_is_refused():
+    record = {**load("v3-single-record.json"), "schemaVersion": 2}
+    trust = parse_trust_policy(load("trust-v3-single.json"))
+    result = verify_execution_trust_record(record, trust.keys)
     assert result["valid"] is False
-    assert result["checks"]["hybridSignatures"] is False
-    assert result["coverage"] == "legacy"
+    assert "only schemaVersion 3" in result["errors"][0]
 
 
-def test_whole_record_v3_with_a_field_added_after_signing_is_rejected():
-    # Under schema version 3 every top-level field is covered, so a field the
-    # signer never saw must fail the hybrid envelope, though the legacy hash
-    # and the legacy signature still match. Mirrors test/whole-record.test.mjs.
-    record = load("record-whole-record-v3.json")
-    trust = parse_trust_policy(load("trust-whole-record.json"))
-    tampered = {**record, "addedAfterSigning": "x"}
-    result = verify_execution_trust_record(tampered, trust.keys, trust.hybrid_required_from, allow_legacy_v2=True)
+def test_single_entry_at_or_after_cutover_is_refused():
+    record = load("v3-single-record.json")
+    trust = parse_trust_policy(load("trust-v3-single.json"))
+    result = verify_execution_trust_record(record, trust.keys, "2026-01-01T00:00:00Z")
     assert result["valid"] is False
-    assert result["checks"]["hybridSignatures"] is False
-    assert result["coverage"] == "legacy"
+    assert "must carry both hybrid signatures" in result["errors"][0]
+
+
+def test_trust_file_with_a_removed_legacy_flag_is_refused():
+    with pytest.raises(ValueError, match="allowLegacyV2 is no longer supported"):
+        parse_trust_policy({"keys": [], "allowLegacyV2": True})
+    with pytest.raises(ValueError, match="allowLegacyOnly is no longer supported"):
+        parse_trust_policy({"keys": [], "allowLegacyOnly": True})
 
 
 # Canonical serialization, matching ECMAScript Number and JSON.stringify.
@@ -200,202 +202,46 @@ def key():
 def test_raw_signature_verifies(key):
     trust = trust_map(trust_entry("main", key))
     record = signed_record(key, "main", {"a": 1})
-    result = verify_execution_trust_record(record, trust, allow_legacy_only=True, allow_legacy_v2=True)
-    assert result == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
+    result = verify_execution_trust_record(record, trust)
+    assert result == {"valid": True, "errors": [], "checks": {"trustRecordHash": True, "signatures": True}}
+
+
+def test_single_entry_is_accepted_without_a_cutover(key):
+    trust = trust_map(trust_entry("main", key))
+    assert verify_execution_trust_record(signed_record(key, "main", {"a": 1}), trust)["valid"] is True
 
 
 def test_large_message_accepts_commitment_signature(key):
     trust = trust_map(trust_entry("main", key))
     body = {"items": ["x" * 200] * 40}
     record = signed_record(key, "main", body, mode="commitment")
-    assert verify_execution_trust_record(record, trust, allow_legacy_only=True, allow_legacy_v2=True)["valid"] is True
+    assert verify_execution_trust_record(record, trust)["valid"] is True
 
 
 def test_small_message_rejects_commitment_signature(key):
     trust = trust_map(trust_entry("main", key))
     record = signed_record(key, "main", {"a": 1}, mode="commitment")
-    result = verify_execution_trust_record(record, trust, allow_legacy_v2=True)
+    result = verify_execution_trust_record(record, trust)
     assert result["valid"] is False
-    assert result["checks"]["signature"] is False
+    assert result["checks"]["signatures"] is False
 
 
 def test_tampered_signature_is_rejected(key):
     trust = trust_map(trust_entry("main", key))
     record = signed_record(key, "main", {"a": 1})
-    raw = bytearray(base64.b64decode(record["signature"]["signature"]))
+    raw = bytearray(base64.b64decode(record["signatures"][0]["signature"]))
     raw[0] ^= 1
-    record["signature"]["signature"] = base64.b64encode(bytes(raw)).decode()
-    assert verify_execution_trust_record(record, trust, allow_legacy_v2=True)["valid"] is False
+    record["signatures"][0]["signature"] = base64.b64encode(bytes(raw)).decode()
+    assert verify_execution_trust_record(record, trust)["valid"] is False
 
 
 def test_unknown_keyid_is_rejected(key):
     trust = trust_map(trust_entry("main", key))
     record = signed_record(key, "nobody", {"a": 1})
-    assert "no trusted key" in verify_execution_trust_record(record, trust, allow_legacy_v2=True)["errors"][0]
+    assert "no trusted key" in verify_execution_trust_record(record, trust)["errors"][0]
 
 
 def test_compromised_key_is_rejected(key):
     trust = trust_map(trust_entry("main", key, compromised=True))
     record = signed_record(key, "main", {"a": 1})
-    assert verify_execution_trust_record(record, trust, allow_legacy_v2=True)["valid"] is False
-
-
-def test_record_before_validity_window_is_rejected(key):
-    trust = trust_map(trust_entry("main", key, validFrom="2026-07-01T00:00:00.000Z"))
-    record = signed_record(key, "main", {"a": 1}, created="2026-06-01T00:00:00Z")
-    result = verify_execution_trust_record(record, trust, allow_legacy_v2=True)
-    assert result["valid"] is False
-    assert "outside the validity window" in result["errors"][0]
-
-
-def test_record_after_validity_end_is_rejected(key):
-    trust = trust_map(trust_entry("main", key, validUntil="2026-05-01T00:00:00.000Z"))
-    record = signed_record(key, "main", {"a": 1}, created="2026-06-01T00:00:00Z")
-    assert verify_execution_trust_record(record, trust, allow_legacy_v2=True)["valid"] is False
-
-
-def test_cutover_requires_hybrid_envelope_for_later_records(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1}, created="2026-06-01T12:00:00Z")
-    result = verify_execution_trust_record(record, trust, "2026-01-01T00:00:00.000Z", allow_legacy_v2=True)
-    assert result["valid"] is False
-    assert "hybridRequiredFrom" in result["errors"][-1]
-
-
-def test_cutover_does_not_apply_to_earlier_records(key):
-    trust = trust_map(trust_entry("main", key, validFrom="2024-01-01T00:00:00.000Z"))
-    record = signed_record(key, "main", {"a": 1}, created="2025-06-01T12:00:00Z")
-    assert verify_execution_trust_record(record, trust, "2026-01-01T00:00:00.000Z", allow_legacy_v2=True)["valid"] is True
-
-
-def test_fingerprint_mismatch_is_rejected(key):
-    entry = trust_entry("main", key)
-    entry["fingerprint"] = "sha256:" + "0" * 64
-    result = verify_execution_trust_record(signed_record(key, "main", {"a": 1}), trust_map(entry), allow_legacy_v2=True)
-    assert result["valid"] is False
-    assert "pinned fingerprint" in result["errors"][0]
-
-
-def test_non_object_record_is_rejected():
-    result = verify_execution_trust_record(["not", "an", "object"], {}, allow_legacy_v2=True)
-    assert result == {"valid": False, "coverage": "legacy", "errors": ["record must be a JSON object"], "checks": {}}
-
-
-def test_key_fingerprint_matches_trust_entry(key):
-    entry = trust_entry("main", key)
-    assert key_fingerprint(entry["publicKeyPem"]) == entry["fingerprint"]
-
-
-# Trust set and timestamps.
-
-@pytest.mark.parametrize(
-    "document, message",
-    [
-        ({}, 'trust set must be an object with a "keys" array'),
-        ({"keys": [{"keyId": ""}]}, "keys[0].keyId must be a non-empty string"),
-        ({"keys": [{"keyId": "a", "algorithm": "rsa"}]}, "keys[0].algorithm must be one of ed25519, dilithium3"),
-        ({"keys": [], "hybridRequiredFrom": "2026-01-01T00:00:00"}, 'hybridRequiredFrom must be an ISO-8601 UTC timestamp ending in "Z"'),
-    ],
-)
-def test_malformed_trust_set_is_rejected(document, message):
-    with pytest.raises(ValueError, match=re.escape(message)):
-        parse_trust_policy(document)
-
-
-def test_timestamp_forms():
-    assert parse_timestamp("2026-01-01T00:00:00.000Z").isoformat() == "2026-01-01T00:00:00+00:00"
-    assert parse_timestamp("2026-01-01T02:00:00+02:00").isoformat() == "2026-01-01T00:00:00+00:00"
-    assert parse_timestamp("2026-01-01").isoformat() == "2026-01-01T00:00:00+00:00"
-    # Fractions beyond microseconds are truncated, as V8's Date.parse accepts them.
-    assert parse_timestamp("2026-01-01T00:00:00.1234567Z").microsecond == 123456
-    assert parse_timestamp("2026-01-01T00:00:00") is None
-    assert parse_timestamp("2026-13-01T00:00:00Z") is None
-
-
-# Command line.
-
-def run_cli(*args):
-    return subprocess.run([sys.executable, "-m", "parmana_verifier", *args], capture_output=True, text=True,
-                          cwd=Path(__file__).resolve().parents[1])
-
-
-def test_cli_exit_codes(tmp_path, key):
-    trust_path = tmp_path / "trust.json"
-    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)], "allowLegacyOnly": True, "allowLegacyV2": True}))
-    good = tmp_path / "good.json"
-    good.write_text(json.dumps(signed_record(key, "main", {"a": 1})))
-    bad = tmp_path / "bad.json"
-    bad.write_text(json.dumps(load("record-tampered-amount.json")))
-
-    assert run_cli(str(good), str(trust_path)).returncode == 0
-    assert run_cli(str(bad), str(trust_path)).returncode == 1
-    assert run_cli(str(good)).returncode == 2
-    assert run_cli(str(tmp_path / "missing.json"), str(trust_path)).returncode == 2
-
-
-def test_cli_prints_one_json_line(tmp_path, key):
-    trust_path = tmp_path / "trust.json"
-    trust_path.write_text(json.dumps({"keys": [trust_entry("main", key)], "allowLegacyOnly": True, "allowLegacyV2": True}))
-    good = tmp_path / "good.json"
-    good.write_text(json.dumps(signed_record(key, "main", {"a": 1})))
-    output = run_cli(str(good), str(trust_path)).stdout
-    report = json.loads(output)
-    assert {key: report[key] for key in ("valid", "coverage", "errors", "checks")} == {"valid": True, "coverage": "legacy", "errors": [], "checks": {"trustRecordHash": True, "signature": True}}
-    # The correspondence report is added; it does not change "valid" (see correspondence.py).
-    assert report["correspondence"]["status"] == "not_checked"
-    assert output.count("\n") == 1
-
-
-def test_legacy_only_record_refused_by_default(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1})
-    result = verify_execution_trust_record(record, trust, allow_legacy_v2=True)
-    assert result["valid"] is False
-    assert "no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly" in result["errors"][-1]
-
-
-def test_legacy_only_record_after_cutover_refused_even_with_allow(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1}, created="2026-06-01T12:00:00Z")
-    result = verify_execution_trust_record(
-        record, trust, "2026-01-01T00:00:00.000Z", allow_legacy_only=True, allow_legacy_v2=True
-    )
-    assert result["valid"] is False
-    assert "hybridRequiredFrom" in result["errors"][-1]
-
-
-def test_trust_policy_rejects_non_boolean_allow_legacy_only(key):
-    with pytest.raises(ValueError, match="allowLegacyOnly must be true or false"):
-        parse_trust_policy({"keys": [trust_entry("main", key)], "allowLegacyOnly": "yes"})
-
-
-def test_record_with_no_schema_version_is_refused_by_default(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1})
-    record.pop("schemaVersion", None)
-    result = verify_execution_trust_record(record, trust, allow_legacy_only=True)
-    assert result["valid"] is False
-    assert "refused by default" in result["errors"][0]
-
-
-def test_record_with_no_schema_version_verifies_only_with_allow_legacy_v2(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1})
-    record.pop("schemaVersion", None)
-    result = verify_execution_trust_record(record, trust, allow_legacy_only=True, allow_legacy_v2=True)
-    assert result["valid"] is True
-    assert result["coverage"] == "legacy"
-
-
-def test_explicit_schema_version_2_is_refused_by_default(key):
-    trust = trust_map(trust_entry("main", key))
-    record = signed_record(key, "main", {"a": 1})
-    record["schemaVersion"] = 2
-    result = verify_execution_trust_record(record, trust, allow_legacy_only=True)
-    assert result["valid"] is False
-    assert "refused by default" in result["errors"][0]
-
-
-def test_trust_file_rejects_non_boolean_allow_legacy_v2():
-    with pytest.raises(ValueError, match="allowLegacyV2 must be true or false"):
-        parse_trust_policy({"keys": [], "allowLegacyV2": "yes"})
+    assert verify_execution_trust_record(record, trust)["valid"] is False

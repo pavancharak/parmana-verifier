@@ -9,11 +9,10 @@ This is the Python counterpart of the Node verifier in the repository root. It c
 **Checked**
 
 - The record hash (`trustRecordHash`) against the canonical record fields.
-- The Ed25519 signature, over the legacy message, from a key in your trust file.
-- Ed25519 signatures in a hybrid `signatures` array, and the whole-record (schema version 3) message.
+- The schema version 3 whole-record message, and the `signatures` array: one entry in single mode, two in hybrid.
 - Trust rules: the key's fingerprint, its validity window, and the `compromised` flag.
 - Execution correspondence, as a separate `correspondence` report in the output: each execution's dispatched content hash must equal the authorized one, and the nonce, business transaction hash, policy content hash and authority grant must match the authorization. A `passed` report needs every execution checked and corresponding. The report does not change `valid` or the exit code. See [Execution correspondence](../README.md#execution-correspondence) in the repository README; the Node verifier gives the same report.
-- The `hybridRequiredFrom` cutover, when the trust file sets one. A record with no hybrid envelope is refused unless it predates the cutover, or the trust file sets `"allowLegacyOnly": true` (and no cutover is set).
+- The `hybridRequiredFrom` cutover, when the trust file sets one. A record created at or after it must carry both entries; one created before it is accepted with one valid entry. The removed flags `allowLegacyOnly` and `allowLegacyV2` are refused.
 
 **ML-DSA-65 (`dilithium3`) signatures are checked** with `cryptography` 48.0.0 or later, over the same message as the Ed25519 entry. A hybrid record is accepted only when both entries verify, so one valid part is never enough.
 
@@ -45,27 +44,27 @@ From a clone of this repository, at the repository root:
 
 ```sh
 pip install -e python
-parmana-verify test/vectors/record-python-ed25519.json test/vectors/trust-python-ed25519.json
+parmana-verify test/vectors/parmana-core-generated/v3-single-record.json test/vectors/parmana-core-generated/trust-v3-single.json
 ```
 
 ```json
-{"valid":true,"coverage":"legacy","errors":[],"checks":{"trustRecordHash":true,"signature":true},"correspondence":{"status":"not_checked","executions":[{"executionId":null,"result":{"status":"not_checked","reason":"no authorization is embedded in the trust record"}}]}}
+{"valid":true,"errors":[],"checks":{"trustRecordHash":true,"signatures":true},"correspondence":{"status":"not_checked","executions":[]}}
 ```
 
-The exit code is `0`. The `correspondence` report is `not_checked` here because this legacy record embeds no authorization, so there is nothing to compare. That is not a mismatch. The report does not change `valid` or the exit code. Change the record and it is rejected:
+The record is schema version 3 with one Ed25519 signature (single mode). The exit code is `0`. The `correspondence` report is `not_checked` here because the record embeds no authorization, so there is nothing to compare. That is not a mismatch. The report does not change `valid` or the exit code. Change a covered field and the record is rejected. The sample below changes the amount in a copy and runs the same trust file:
 
 ```sh
-parmana-verify test/vectors/record-python-ed25519-tampered.json test/vectors/trust-python-ed25519.json
+parmana-verify <tampered-copy.json> test/vectors/parmana-core-generated/trust-v3-single.json
 ```
 
-The exit code is `1`, and the output lists the failed checks. The same check from Python:
+The exit code is `1`, and `errors` names the failed checks: `trustRecordHash mismatch` and `signature verification failed`. The same check from Python:
 
 ```python
 import json
 from parmana_verifier import parse_trust_policy, verify_execution_trust_record
 
-record = json.load(open("test/vectors/record-python-ed25519.json"))
-policy = parse_trust_policy(json.load(open("test/vectors/trust-python-ed25519.json")))
+record = json.load(open("test/vectors/parmana-core-generated/v3-single-record.json"))
+policy = parse_trust_policy(json.load(open("test/vectors/parmana-core-generated/trust-v3-single.json")))
 result = verify_execution_trust_record(record, policy.keys, policy.hybrid_required_from)
 print(result["valid"], result["errors"])
 ```
@@ -82,7 +81,7 @@ parmana-verify key-fingerprint <public-key.pem>
 - `verify` prints one line of JSON and exits `0` when the record is valid, `1` when it is invalid, and `2` for a usage or read error.
 - `key-fingerprint` prints the `sha256:...` value to pin in a trust file.
 
-The output has the same fields as the Node CLI: `valid`, `coverage`, `errors` and `checks`.
+The output has the same fields as the Node CLI: `valid`, `errors`, `checks` and `correspondence`. The trust-file flags `allowLegacyOnly` and `allowLegacyV2` were removed under decision D24; a trust file that sets either is refused with exit `2`.
 
 ## Python API
 

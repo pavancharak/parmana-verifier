@@ -21,38 +21,19 @@ Test results, the security review scope and the changelog are indexed under [Rep
 Requires Node.js 24 or later. Ed25519 works on any Node 24 build; post-quantum ML-DSA-65 signatures need OpenSSL 3.5 or later. From a clone of this repository:
 
 ```sh
-node bin/parmana-verify.mjs test/vectors/record-whole-record-v3.json test/vectors/trust-whole-record.json
+node bin/parmana-verify.mjs test/vectors/parmana-core-generated/v3-hybrid-record.json test/vectors/parmana-core-generated/trust-v3-hybrid.json
 ```
 
 ```json
-{
-  "valid": true,
-  "coverage": "full",
-  "errors": [],
-  "checks": {
-    "trustRecordHash": true,
-    "signature": true,
-    "hybridSignatures": true
-  },
-  "correspondence": {
-    "status": "not_checked",
-    "executions": [
-      {
-        "executionId": "ex_1",
-        "result": {
-          "status": "not_checked",
-          "reason": "no authorization is embedded in the trust record"
-        }
-      }
-    ]
-  }
-}
+{"valid":true,"errors":[],"checks":{"trustRecordHash":true,"signatures":true},"correspondence":{"status":"not_checked","executions":[]}}
 ```
+
+The record is schema version 3, with two signatures (Ed25519 and ML-DSA-65). The verifier checks only schema version 3 (decision D24).
 
 The exit code is `0`. The `correspondence` field is a separate report, described in [Execution correspondence](#execution-correspondence). It does not change `valid` or the exit code. This sample record is a trimmed test vector that does not embed its authorization, so there is nothing to compare and its correspondence is reported as `not_checked`, not as a mismatch. A complete record from Parmana embeds the authorization and is checked. A record that has been changed is rejected:
 
 ```sh
-node bin/parmana-verify.mjs test/vectors/record-tampered-amount.json test/vectors/trust.json
+node bin/parmana-verify.mjs test/vectors/parmana-core-generated/v3-hybrid-record-tampered.json test/vectors/parmana-core-generated/trust-v3-hybrid.json
 ```
 
 The exit code is `1`, and the output lists the failed checks. The test vectors are labelled test material; see [test/vectors/README.md](test/vectors/README.md). For real records, pin the keys you trust (see [Pinning a key](#pinning-a-key)).
@@ -60,8 +41,8 @@ The exit code is `1`, and the output lists the failed checks. The test vectors a
 On Windows PowerShell, run the same two commands with Windows paths. Use Node 24 or later:
 
 ```powershell
-node bin\parmana-verify.mjs test\vectors\record-whole-record-v3.json test\vectors\trust-whole-record.json
-node bin\parmana-verify.mjs test\vectors\record-tampered-amount.json test\vectors\trust.json
+node bin\parmana-verify.mjs test\vectors\parmana-core-generated\v3-hybrid-record.json test\vectors\parmana-core-generated\trust-v3-hybrid.json
+node bin\parmana-verify.mjs test\vectors\parmana-core-generated\v3-hybrid-record-tampered.json test\vectors\parmana-core-generated\trust-v3-hybrid.json
 ```
 
 The first prints the valid result above and exits with `0`. The second prints `"valid":false` and exits with `1`.
@@ -140,22 +121,24 @@ A signature proves only that a key made it. Before you trust a record, decide wh
 A key is used only if all of these hold:
 
 - its PEM hashes to the pinned fingerprint (SHA-256 of the SPKI DER encoding);
-- the algorithm named by the signature matches the algorithm in the trust file;
+- the algorithm named by the signature entry matches the algorithm in the trust file;
 - it is not marked `compromised`;
 - the record's `createdAt` is at or after `validFrom` and before `validUntil` (if set).
 
 A compromised key is rejected whatever the timestamp, so signatures it made stay void.
 
-### Records with no hybrid envelope
+### Signatures and the cutover
 
-A record with no `signatures` array is a legacy-only record. The verifier refuses it by default. It is accepted only when:
+The verifier accepts only schema version 3 (decision D24). Any other `schemaVersion`, or none, is refused before any signature is read. Schema version 2 and the legacy top-level `signature` are no longer accepted.
 
-- the trust file sets `hybridRequiredFrom` and the record was created before that instant; or
-- the trust file sets `"allowLegacyOnly": true` and does not set `hybridRequiredFrom`.
+A schema version 3 record has a `signatures` array of one or two entries, each for a different algorithm:
 
-Which trust policy to use for each state of a deployment, and how to move from single mode to hybrid, is in [docs/OPERATING-MODES.md](docs/OPERATING-MODES.md).
+- **Single mode**: one entry, Ed25519 or ML-DSA-65, the configured algorithm. One valid entry is accepted.
+- **Hybrid**: two entries, Ed25519 and ML-DSA-65. Both must verify, so one valid part is never enough.
 
-Otherwise the result is invalid, and the error says which setting would accept it. A record with no `schemaVersion`, or with `schemaVersion` 2, is refused unless the trust file sets `"allowLegacyV2": true`, because it signs only seven top-level fields. A record created at or after `hybridRequiredFrom` always needs a valid hybrid envelope, whatever `allowLegacyOnly` says. See [docs/FORMAT.md](docs/FORMAT.md#trust-set-trustjson).
+`hybridRequiredFrom` (ADR-0016) is the cutover in the trust file. A record created at or after it must carry both entries. A record created before it is accepted with one valid entry. The cutover is inclusive.
+
+A trust file that still sets `allowLegacyOnly` or `allowLegacyV2` is refused with exit `2`. Remove those fields. Which trust policy to use for each state of a deployment, and how to move from single mode to hybrid, is in [docs/OPERATING-MODES.md](docs/OPERATING-MODES.md). See [docs/FORMAT.md](docs/FORMAT.md#trust-set-trustjson) for the trust-set format.
 
 ## Examples
 
@@ -173,9 +156,9 @@ The examples are in `examples/`, and each one prints what it checks:
 - `04-hybrid-envelope.mjs`: the Ed25519 and ML-DSA-65 entries of a hybrid record (needs Node 24).
 - `05-build-and-verify-a-record.mjs`: build, hash, sign, pin and verify a record from scratch, with a runtime test key.
 - `06-command-line.mjs`: the command-line exit codes, and fingerprinting a key for pinning.
-- `07-whole-record-coverage.mjs`: what coverage `full` and `legacy` mean, and that a changed covered field is refused.
-- `08-hybrid-cutover.mjs`: the `hybridRequiredFrom` cutover, and what it adds to a record created after it.
-- `09-unsupported-schema-version.mjs`: a schema version other than 2 or 3 is refused, not guessed at.
+- `07-whole-record-coverage.mjs`: what a schema version 3 signature protects, including a changed `updatedAt` that the hash does not catch.
+- `08-hybrid-cutover.mjs`: a single-entry record before and after the `hybridRequiredFrom` cutover.
+- `09-unsupported-schema-version.mjs`: a schema version other than 3 is refused, not guessed at.
 
 Each example exits `0` when it behaves as described, so the set runs in CI.
 
@@ -187,18 +170,16 @@ npm test
 
 Run the tests on Node 24. On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. Test keys are generated at run time, labelled "TEST KEY - NOT FOR PRODUCTION", and never written to disk.
 
-The suite covers the legacy signature and hash, hybrid signatures, schema version 3 coverage, the trust rules, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
+The suite covers the whole-record hash and signatures, single mode and hybrid signatures, the cutover, the trust rules, the removed legacy flags, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
 
-Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and `python/tests/test_parmana_core_records.py`. They use `test/vectors/parmana-core-generated/cases.json`: 22 cases over records exported at parmana-core `7e9a54fb`, with tampered copies and trust-file edits. Both verifiers must agree on every case. The quick-start record in `python/README.md` is tested in `test/quickstart.test.mjs` and `python/tests/test_quickstart.py`.
+Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and `python/tests/test_parmana_core_records.py`. They use `test/vectors/parmana-core-generated/cases.json`: 16 cases over two records generated with parmana-core's signing code (hybrid and single mode, decision D24), with tampered copies and trust-file edits. Both verifiers must agree on every case. The quick-start record in `python/README.md` is tested in `test/quickstart.test.mjs` and `python/tests/test_quickstart.py`.
 
 ## Limitations
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
-- For records with `schemaVersion` 2, or with no `schemaVersion`, only the fields listed in [docs/FORMAT.md](docs/FORMAT.md) are protected. Any other field can be changed without the verifier noticing. Read decisions only from covered fields. See "Fields not covered by any signature" in that document.
-- For records with `schemaVersion` 3, every field except the signature envelope, `verifications` and `receipts` is protected.
-- `coverage` is `full` only when the hybrid signatures also verify. It does not report the schema version. A schema version 3 record that fails the hybrid check reports `legacy`, and an Ed25519-only failure can report `full` alongside `valid: false`. Read `valid` for the verdict.
-- `checks.signature` is the legacy top-level signature, which covers only the seven legacy fields. A change to `updatedAt` in a schema version 3 record is caught by the hybrid signatures alone, so `checks.signature` stays `true` (pinned by `test/parmana-core-records.test.mjs`).
-- A record with `schemaVersion` 2 can be downgraded by someone who can write to storage, since `schemaVersion` is unsigned. Set `hybridRequiredFrom` in the trust file to reject downgraded records created after a cutover. Records before the cutover stay open to this. With no cutover set, a record with no hybrid envelope is refused unless the trust file sets `allowLegacyOnly` to `true` (see "Records with no hybrid envelope" above).
+- Every top-level field except `signatures`, `schemaVersion`, `verifications` and `receipts` is protected by the signatures. `verifications` and `receipts` are attached after signing and are not covered.
+- `trustRecordHash` covers the seven canonical fields. The signatures cover the whole record, so a change to a field outside the hash, such as `updatedAt`, is caught by the signatures alone.
+- In single mode, a record has one signature. The verifier cannot tell that a second one was expected. Set `hybridRequiredFrom` in the trust file to require both from a given instant. Records created before that instant stay accepted with one valid signature.
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.
 - It does not verify the policy the record cites, the authorization decision logic, or the state of any connector or external system.

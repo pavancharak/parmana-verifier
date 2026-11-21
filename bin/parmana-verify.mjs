@@ -77,7 +77,7 @@ try {
   process.exit(2);
 }
 
-const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined, allowLegacyOnly: policy.allowLegacyOnly, allowLegacyV2: policy.allowLegacyV2 });
+const result = verifyExecutionTrustRecord(proof, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined });
 
 // The correspondence report does not change `valid` or the exit code (see src/correspondence.mjs).
 console.log(JSON.stringify({ ...result, correspondence: checkTrustRecordCorrespondence(proof) }));

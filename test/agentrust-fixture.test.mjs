@@ -1,31 +1,25 @@
-// The AgenTrust parmana-server integration's approved refund record (fixture 01),
-// copied unedited. Its key is a test key generated for that integration's run.
+// The AgenTrust parmana-server integration's approved refund record (fixture 01), copied unedited.
+// It is a schema version 2 record, and its trust file sets the legacy flags. Both are refused under
+// decision D24. The fixture is kept as evidence of that refusal; it is not edited here.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { parseTrustPolicy } from "../src/trust.mjs";
+import { parseTrustPolicy, parseTrustSet } from "../src/trust.mjs";
 
 const dir = fileURLToPath(new URL("./vectors/", import.meta.url));
 const load = (name) => JSON.parse(readFileSync(dir + name, "utf8"));
-const trust = parseTrustPolicy(load("agentrust-trust.json"));
-// This external vector is a schema version 2 record. Opt in explicitly: the
-// trust file belongs to AgenTrust and is not edited here.
-const options = { hybridRequiredFrom: trust.hybridRequiredFrom, allowLegacyOnly: trust.allowLegacyOnly, allowLegacyV2: true };
 
-test("agentrust fixture: approved refund record verifies with its pinned key", () => {
-  const result = verifyExecutionTrustRecord(load("agentrust-refund-approved.json"), trust.keys, options);
-  assert.equal(result.valid, true, result.errors.join("; "));
-  assert.equal(result.checks.trustRecordHash, true);
-  assert.equal(result.checks.signature, true);
-  assert.equal(result.coverage, "legacy");
+test("agentrust fixture: its trust file sets removed legacy flags, so it is refused as a whole", () => {
+  assert.throws(() => parseTrustPolicy(load("agentrust-trust.json")), /no longer supported/);
 });
 
-test("agentrust fixture: a changed amount is refused", () => {
-  const record = load("agentrust-refund-approved.json");
-  const text = JSON.stringify(record).replace(/"500"/, '"5000"').replace(/:500([,}])/, ":5000$1");
-  assert.notEqual(text, JSON.stringify(record));
-  const result = verifyExecutionTrustRecord(JSON.parse(text), trust.keys, options);
+test("agentrust fixture: the schema version 2 record is refused, with the same keys", () => {
+  // Keys only: strip the removed flags, as a verifier on schema version 3 would have to.
+  const { keys } = load("agentrust-trust.json");
+  const result = verifyExecutionTrustRecord(load("agentrust-refund-approved.json"), parseTrustSet({ keys }));
+
   assert.equal(result.valid, false);
+  assert.match(result.errors.join(" "), /only schemaVersion 3/);
 });

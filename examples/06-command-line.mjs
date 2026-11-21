@@ -11,11 +11,9 @@ import { join } from "node:path";
 
 const BIN = fileURLToPath(new URL("../bin/parmana-verify.mjs", import.meta.url));
 const dir = mkdtempSync(join(tmpdir(), "parmana-cli-example-"));
-// The vector trust file predates the schema version 2 opt-in. Copy it into the
-// temporary directory with allowLegacyV2 set, so the example can verify the
-// version 2 record it demonstrates.
+const trust = loadVector("parmana-core-generated/trust-v3-single.json");
 const trustPath = join(dir, "trust.json");
-writeFileSync(trustPath, JSON.stringify({ ...loadVector("trust.json"), allowLegacyV2: true }));
+writeFileSync(trustPath, JSON.stringify(trust));
 
 function run(args) {
   return spawnSync(process.execPath, [BIN, ...args], { encoding: "utf8" });
@@ -23,8 +21,9 @@ function run(args) {
 
 const proofFile = join(dir, "proof.json");
 const tamperedFile = join(dir, "tampered.json");
-writeFileSync(proofFile, JSON.stringify(loadVector("record-implicit-v2.json")));
-writeFileSync(tamperedFile, JSON.stringify(loadVector("record-tampered-amount.json")));
+const record = loadVector("parmana-core-generated/v3-single-record.json");
+writeFileSync(proofFile, JSON.stringify(record));
+writeFileSync(tamperedFile, JSON.stringify({ ...record, transaction: { ...record.transaction, signals: { amount: 999 } } }));
 
 heading("1. Verify a valid record");
 const valid = run([proofFile, trustPath]);
@@ -42,7 +41,7 @@ console.log(`exit ${usage.status}`);
 console.log(usage.stderr.trim());
 
 heading("4. Fingerprint a public key, for pinning");
-const keyPem = loadVector("trust.json").keys[0].publicKeyPem;
+const keyPem = trust.keys[0].publicKeyPem;
 const keyFile = join(dir, "key.pem");
 writeFileSync(keyFile, keyPem);
 const fingerprint = run(["key-fingerprint", keyFile]);
