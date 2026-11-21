@@ -45,7 +45,7 @@ COMMITMENT_PREFIX = b"PARMANA-ED25519-LARGE-MESSAGE-V1\x00"
 WHOLE_RECORD_SCHEMA_VERSION = 3
 
 # The fields covered by trustRecordHash.
-HASH_FIELDS = ("trustRecordId", "businessTransactionId", "transaction", "authorization", "overrides", "executions", "createdAt")
+HASH_FIELDS = ("trustRecordId", "businessTransactionId", "transaction", "authorization", "executions", "createdAt")
 # Top-level fields that a version 3 message does not cover. "signature" is listed so the exclusion
 # matches parmana-core, which once carried that field.
 WHOLE_RECORD_EXCLUDED_FIELDS = ("signature", "signatures", "schemaVersion", "verifications", "receipts")

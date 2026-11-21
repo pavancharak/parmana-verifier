@@ -178,7 +178,7 @@ Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and
 
 - The verifier can only check that a record was signed by the key you pinned. It cannot prove that the key belongs to Parmana. That depends on how you obtained and compared the fingerprint.
 - Every top-level field except `signatures`, `schemaVersion`, `verifications` and `receipts` is protected by the signatures. `verifications` and `receipts` are attached after signing and are not covered.
-- `trustRecordHash` covers the seven canonical fields. The signatures cover the whole record, so a change to a field outside the hash, such as `updatedAt`, is caught by the signatures alone.
+- `trustRecordHash` covers the six canonical fields. The signatures cover the whole record, so a change to a field outside the hash, such as `updatedAt`, is caught by the signatures alone.
 - In single mode, a record has one signature. The verifier cannot tell that a second one was expected. Set `hybridRequiredFrom` in the trust file to require both from a given instant. Records created before that instant stay accepted with one valid signature.
 - The validity window is checked against the record's `createdAt`, not against the signing time. A record that carries a false `createdAt` is checked against the window for that false time.
 - Keys and fingerprints must be kept current. The verifier does not know about rotations or revocations that you have not written into the trust file.

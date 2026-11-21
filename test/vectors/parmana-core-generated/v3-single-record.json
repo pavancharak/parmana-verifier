@@ -9,17 +9,16 @@
       "amount": 100
     }
   },
-  "overrides": [],
   "executions": [],
   "createdAt": "2026-11-21T00:00:00.000Z",
   "updatedAt": "2026-11-21T00:00:00.000Z",
   "schemaVersion": 3,
-  "trustRecordHash": "bb53b797c5a8607273112bc31641a2680d325d0bcd7a21cb10338a3ffb551100",
+  "trustRecordHash": "eb72ee9c404ea520963bf8e9347a59554148742989bb933c35f629ed6fa8d645",
   "signatures": [
     {
       "algorithm": "ed25519",
       "keyId": "single-record-ed",
-      "signature": "v3AqgvAziqhaL1G6T8uFd+y+7t29WYhpu8qhk3O7Biz8It2NADPF3OJ+w7m18o3nuII+0QGWj3T7SexHl98JBA=="
+      "signature": "eGi6ISiRT/tiln/W7yXaXsGrtH+O++olih+NIjqbwwIxThkq0GUHhYEgjf+Pjv8puGgHz2+r8fJByKoxIFQjDA=="
     }
   ]
 }

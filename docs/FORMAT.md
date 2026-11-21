@@ -19,8 +19,8 @@ The verifier uses these fields:
 
 | Field | Required | Meaning |
 |---|---|---|
-| `trustRecordId`, `businessTransactionId`, `transaction`, `authorization`, `overrides`, `executions`, `createdAt` | Yes (the hash covers them) | The seven canonical fields. A field that is absent is left out of the canonical bytes. |
-| `trustRecordHash` | Yes | Lowercase hex SHA-256 of the canonical bytes of the seven fields above. |
+| `trustRecordId`, `businessTransactionId`, `transaction`, `authorization`, `executions`, `createdAt` | Yes (the hash covers them) | The six canonical fields. A field that is absent is left out of the canonical bytes. |
+| `trustRecordHash` | Yes | Lowercase hex SHA-256 of the canonical bytes of the six fields above. |
 | `schemaVersion` | Yes | Must be `3`. Any other value, or no value, makes the record invalid before any signature is read. |
 | `signatures` | Yes | An array of one or two signature entries, described below. The signatures cover the whole record. |
 | `updatedAt` | No | Covered by the signatures, not by `trustRecordHash`. |
@@ -66,7 +66,7 @@ The command prints one line of JSON:
 
 - `valid`: `true` only if every check that ran passed.
 - `errors`: a list of plain-text reasons, empty when valid.
-- `checks.trustRecordHash`: whether the hash matched the seven canonical fields.
+- `checks.trustRecordHash`: whether the hash matched the six canonical fields.
 - `checks.signatures`: whether the `signatures` array passed the rules in [Hybrid signatures](#hybrid-signatures), including the cutover.
 - `correspondence`: a separate report on whether what was dispatched is what was authorized. It does not change `valid` or the exit code. See the README.
 
@@ -80,7 +80,7 @@ Every top-level field is covered by the signatures except `signatures`, `schemaV
 
 So a change to any covered field, including `updatedAt`, makes the signatures fail, even when `trustRecordHash` still matches. A field added after signing (not `verifications` or `receipts`) fails the signatures too.
 
-`trustRecordHash` covers only the seven canonical fields. The signatures are the check that covers the rest of the record.
+`trustRecordHash` covers only the six canonical fields. The signatures are the check that covers the rest of the record.
 
 ## Hybrid signatures
 
