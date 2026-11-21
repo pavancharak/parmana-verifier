@@ -1,30 +1,30 @@
-// What the record's coverage level means, and what a schema version 3 record
-// protects. A version 3 envelope covers every field except the signature
-// envelope, verifications and receipts. A changed covered field is refused.
+// What a schema version 3 record protects. Its signatures cover every top-level field except
+// signatures, schemaVersion, verifications and receipts, so a change to any covered field is caught,
+// even when the stored hash still matches.
 // Run: node examples/07-whole-record-coverage.mjs
 import { parseTrustPolicy } from "../src/trust.mjs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
-import { caught, decision, heading, loadVector } from "./shared.mjs";
+import { decision, heading, loadVector } from "./shared.mjs";
 
-const policy = parseTrustPolicy(loadVector("trust-whole-record.json"));
-const options = { hybridRequiredFrom: policy.hybridRequiredFrom ?? undefined };
+const policy = parseTrustPolicy(loadVector("parmana-core-generated/trust-v3-hybrid.json"));
+const record = loadVector("parmana-core-generated/v3-hybrid-record.json");
 
-heading("1. A version 3 record: coverage is full");
-const v3 = verifyExecutionTrustRecord(loadVector("record-whole-record-v3.json"), policy.keys, options);
-console.log(`${decision(v3.valid)}  coverage=${v3.coverage}`);
+heading("1. The record as signed");
+const signed = verifyExecutionTrustRecord(record, policy.keys, { hybridRequiredFrom: policy.hybridRequiredFrom });
+console.log(`${decision(signed.valid)}  checks: ${JSON.stringify(signed.checks)}`);
 
-heading("2. A version 2 record: coverage is legacy");
-const v2 = verifyExecutionTrustRecord(loadVector("record-explicit-v2.json"), parseTrustPolicy(loadVector("trust.json")).keys, { allowLegacyV2: true });
-console.log(`${decision(v2.valid)}  coverage=${v2.coverage}`);
-console.log("Read decisions from version 2 records only through the fields the format document lists.");
+heading("2. updatedAt changed after signing");
+const changed = verifyExecutionTrustRecord({ ...record, updatedAt: "2026-02-01T00:00:00.000Z" }, policy.keys);
+console.log(`${decision(changed.valid)}  checks: ${JSON.stringify(changed.checks)}`);
+console.log("      The hash still matches, because updatedAt is not in the seven hashed fields. The signatures catch it.");
 
-heading("3. A covered field changed (updatedAt)");
-const changed = verifyExecutionTrustRecord(loadVector("record-whole-record-v3-updated-at.json"), policy.keys, options);
-console.log(`${decision(changed.valid)}  ${caught(changed.valid)}`);
-console.log(`reason: ${changed.errors[0] ?? "none"}`);
+heading("3. verifications and receipts added after signing");
+const attached = verifyExecutionTrustRecord(
+  { ...record, verifications: [{ verificationId: "v_1" }], receipts: [{ receiptId: "r_1" }] },
+  policy.keys,
+);
+console.log(`${decision(attached.valid)}  checks: ${JSON.stringify(attached.checks)}`);
+console.log("      These are attached after signing, so they are not covered and do not break the signatures.");
 
-const ok = v3.valid && v3.coverage === "full" && v2.valid && v2.coverage === "legacy" && !changed.valid;
-if (!ok) {
-  throw new Error("coverage example did not behave as described");
-}
-console.log("\nAll checks in this example behaved as described.");
+const ok = signed.valid && !changed.valid && attached.valid;
+process.exitCode = ok ? 0 : 1;

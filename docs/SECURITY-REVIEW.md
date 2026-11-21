@@ -1,5 +1,8 @@
 # Security review scope: parmana-verifier 0.3.0
 
+> Note (2026-11-21): this review scope describes parmana-verifier 0.3.0. The verifier has since changed under decision D24: it accepts schema version 3 only, a single whole-record `signatures` array (one entry in single mode, two in hybrid), and no legacy `signature` field or trust-file flags. Points 2 and 3 below describe the earlier design and no longer apply as written. The reviewer should review the current code in `src/verify.mjs`.
+
+
 This document is for an external reviewer. It lists what the verifier is meant to do, what to examine, and how to run it. The verifier is an offline checker for Parmana Execution Trust Records. It does not sign, send, or call any service.
 
 ## What the verifier claims

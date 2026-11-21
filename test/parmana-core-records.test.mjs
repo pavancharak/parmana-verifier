@@ -1,5 +1,6 @@
 // Verifies records produced by parmana-core, through the Node CLI. The expectations are in
-// test/vectors/parmana-core-generated/cases.json, which the Python suite reads too. Test key material only.
+// test/vectors/parmana-core-generated/cases.json, which the Python suite reads too. Schema version 3 only (D24).
+// Test key material only.
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -44,7 +45,10 @@ function applyTrustEdits(trust, edits = []) {
 function materialize(spec) {
   const record = JSON.parse(readFileSync(join(fixtures, spec.record), "utf8"));
   for (const op of spec.tamper ?? []) setPath(record, op.path, op.value);
-  const trust = applyTrustEdits(JSON.parse(readFileSync(join(fixtures, spec.trust), "utf8")), spec.trustEdits);
+  const trust = {
+    ...applyTrustEdits(JSON.parse(readFileSync(join(fixtures, spec.trust), "utf8")), spec.trustEdits),
+    ...(spec.trustFields ?? {}),
+  };
   return { record, trust };
 }
 
@@ -65,7 +69,6 @@ cases.forEach((spec, index) => {
 
     assert.equal(result.valid, expect.valid, JSON.stringify(result.errors));
     assert.equal(exitCode, expect.valid ? 0 : 1);
-    assert.equal(result.coverage, expect.coverage);
 
     for (const [check, value] of Object.entries(expect.checks ?? {})) {
       assert.equal(result.checks[check], value, `check ${check}`);

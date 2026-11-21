@@ -1,24 +1,18 @@
-// Offline verification of an Execution Trust Record.
+// Offline verification of an Execution Trust Record (schema version 3 only, decision D24).
 //
 // Checks run on the record alone:
 //   1. trustRecordHash equals the SHA-256 (hex) of the canonical record fields.
-//   2. signature is a valid signature over those canonical bytes, made by a
-//      trusted key named by signature.keyId (see trust.mjs for the trust rules).
-//   3. If signatures is present, it is a hybrid envelope: at least two entries,
-//      no repeated algorithm, and every entry verifies over the message for
-//      its schemaVersion (default 2). Any failure makes the record invalid.
-//      A record with schemaVersion 3 must carry a hybrid envelope.
-//   4. If a cutover is given (options.hybridRequiredFrom, from the trust
-//      file), a record created at or after it must pass check 3.
+//   2. signatures is an array of one or two entries, each for a different algorithm. Every entry is
+//      a valid signature over the whole record, made by a trusted key named by its keyId (see
+//      trust.mjs for the trust rules). A single valid entry is accepted.
+//   3. If a cutover is given (options.hybridRequiredFrom, from the trust file), a record created at or
+//      after it must carry both entries (ADR-0016).
 //
-// Schema versions:
-//   2  the message is the canonical fields plus schemaVersion.
-//   3  the message is every top-level field except signature, signatures,
-//      schemaVersion, verifications and receipts, plus schemaVersion.
-//      Fields outside the version 2 message, such as updatedAt, are covered.
+// Schema version 3 signs every top-level field except signatures, schemaVersion, verifications and
+// receipts, plus the schema version itself. There is no legacy signature, and schema versions 2 and
+// unversioned records are refused.
 //
-// The result's coverage is "full" when a version 3 envelope verifies, and
-// "legacy" otherwise. Records with other schemaVersion values are invalid.
+// Each record's `valid` is true only when the hash and every check above pass.
 //
 // Supported algorithms:
 //   ed25519     Ed25519 keys. Messages over 4096 bytes may be signed as a
@@ -48,15 +42,14 @@ const ALGORITHMS = {
 
 const RAW_MESSAGE_LIMIT_BYTES = 4096;
 const COMMITMENT_PREFIX = Buffer.from("PARMANA-ED25519-LARGE-MESSAGE-V1\0", "utf8");
-const DEFAULT_SCHEMA_VERSION = 2;
 const WHOLE_RECORD_SCHEMA_VERSION = 3;
-const SUPPORTED_SCHEMA_VERSIONS = [2, 3];
 
 // Top-level fields that a version 3 message does not cover. verifications and
-// receipts are attached after signing; receipts carry their own signature.
+// receipts are attached after signing; receipts carry their own signature. "signature"
+// is listed so the exclusion matches parmana-core, which once carried that field.
 const WHOLE_RECORD_EXCLUDED_FIELDS = ["signature", "signatures", "schemaVersion", "verifications", "receipts"];
 
-// The fields covered by trustRecordHash and the legacy signature.
+// The fields covered by trustRecordHash.
 export function canonicalTrustRecord(record) {
   return {
     trustRecordId: record.trustRecordId,
@@ -69,15 +62,11 @@ export function canonicalTrustRecord(record) {
   };
 }
 
-// The message a hybrid envelope of the given schema version signs.
+// The message the signatures array covers: every top-level field except the excluded ones, plus the schema version.
 export function hybridMessage(record, schemaVersion) {
-  if (schemaVersion === WHOLE_RECORD_SCHEMA_VERSION) {
-    const covered = Object.entries(record).filter(([key]) => !WHOLE_RECORD_EXCLUDED_FIELDS.includes(key));
+  const covered = Object.entries(record).filter(([key]) => !WHOLE_RECORD_EXCLUDED_FIELDS.includes(key));
 
-    return canonicalBytes({ ...Object.fromEntries(covered), schemaVersion });
-  }
-
-  return canonicalBytes({ ...canonicalTrustRecord(record), schemaVersion });
+  return canonicalBytes({ ...Object.fromEntries(covered), schemaVersion });
 }
 
 // trustKeys is a Map from keyId to a trust entry, as returned by parseTrustSet.
@@ -87,27 +76,22 @@ export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
   const errors = [];
 
   if (!isObject(record)) {
-    return { valid: false, coverage: "legacy", errors: ["record must be a JSON object"], checks: {} };
+    return { valid: false, errors: ["record must be a JSON object"], checks: {} };
   }
 
-  // Schema version 2 signs only seven top-level fields. A record with no
-  // schemaVersion is treated as version 2. Both are refused unless the caller
-  // opts in with allowLegacyV2, so a partially covered record is never
-  // accepted by default.
-  const declaredVersion = record.schemaVersion ?? DEFAULT_SCHEMA_VERSION;
-  if (declaredVersion === 2 && options.allowLegacyV2 !== true) {
+  // Schema version 3 only (decision D24). Any other version, or none, is refused before any signature is read.
+  if (record.schemaVersion !== WHOLE_RECORD_SCHEMA_VERSION) {
     return {
       valid: false,
-      coverage: "legacy",
       errors: [
-        "schemaVersion 2 (or no schemaVersion) covers only seven top-level fields and is refused by default: set allowLegacyV2 to accept it, or re-issue the record as schemaVersion 3.",
+        `unsupported schemaVersion ${String(record.schemaVersion)}: only schemaVersion 3 is accepted (decision D24).`,
       ],
       checks: {},
     };
   }
 
-  const legacyMessage = canonicalBytes(canonicalTrustRecord(record));
-  const expectedHash = createHash("sha256").update(legacyMessage).digest("hex");
+  const canonical = canonicalBytes(canonicalTrustRecord(record));
+  const expectedHash = createHash("sha256").update(canonical).digest("hex");
   const hashValid = expectedHash === record.trustRecordHash;
 
   if (!hashValid) {
@@ -115,51 +99,38 @@ export function verifyExecutionTrustRecord(record, trustKeys, options = {}) {
   }
 
   const context = { trustKeys, createdAt: record.createdAt };
+  let signaturesValid = false;
 
-  const signatureValid = verifyLegacySignature(record.signature, legacyMessage, context, errors);
-
-  const checks = { trustRecordHash: hashValid, signature: signatureValid };
-
-  const schemaVersion = record.schemaVersion ?? DEFAULT_SCHEMA_VERSION;
-  const hasEnvelope = record.signatures !== undefined && record.signatures !== null;
-
-  if (!SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion)) {
-    errors.push(`unsupported schemaVersion ${String(schemaVersion)}: expected 2 or 3.`);
-    checks.hybridSignatures = false;
-  } else if (hasEnvelope) {
-    checks.hybridSignatures = verifyHybridSignatures(record.signatures, hybridMessage(record, schemaVersion), context, errors);
-  } else if (schemaVersion === WHOLE_RECORD_SCHEMA_VERSION) {
+  if (record.signatures === undefined || record.signatures === null) {
     errors.push("schemaVersion 3 record has no signatures array: a whole-record signature is required.");
-    checks.hybridSignatures = false;
+  } else {
+    signaturesValid = verifyEnvelope(
+      record.signatures,
+      hybridMessage(record, WHOLE_RECORD_SCHEMA_VERSION),
+      context,
+      errors,
+    );
   }
 
-  // A record with no hybrid envelope is accepted only when the caller allows
-  // it: explicitly (allowLegacyOnly), or because it predates a cutover the
-  // caller supplied. Otherwise it is refused, so a stripped envelope never
-  // passes by default.
+  // From the cutover on, both entries are required (ADR-0016).
   const cutoverGiven = options.hybridRequiredFrom !== undefined && options.hybridRequiredFrom !== null;
-  const predatesCutover = cutoverGiven && !isAtOrAfterCutover(record.createdAt, options.hybridRequiredFrom);
-  // With a cutover, the cutover alone decides; allowLegacyOnly applies only when none is given.
-  const legacyOnlyAllowed = cutoverGiven ? predatesCutover : options.allowLegacyOnly === true;
 
-  // A record created at or after the cutover needs a valid envelope, whether it
-  // is missing or present but invalid.
-  const atOrAfterCutover = cutoverGiven && !predatesCutover;
-  if (atOrAfterCutover && checks.hybridSignatures !== true) {
-    errors.push(`record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) has no valid hybrid envelope.`);
-  } else if (checks.hybridSignatures === undefined && !legacyOnlyAllowed) {
-    errors.push("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.");
+  if (
+    cutoverGiven &&
+    isAtOrAfterCutover(record.createdAt, options.hybridRequiredFrom) &&
+    signaturesValid &&
+    record.signatures.length !== 2
+  ) {
+    errors.push(
+      `record created at or after hybridRequiredFrom (${options.hybridRequiredFrom}) must carry both hybrid signatures.`,
+    );
+    signaturesValid = false;
   }
-
-  const envelopeOk = checks.hybridSignatures === undefined ? legacyOnlyAllowed : checks.hybridSignatures;
-
-  const coverage = schemaVersion === WHOLE_RECORD_SCHEMA_VERSION && checks.hybridSignatures === true ? "full" : "legacy";
 
   return {
-    valid: hashValid && signatureValid && envelopeOk,
-    coverage,
+    valid: hashValid && signaturesValid,
     errors,
-    checks,
+    checks: { trustRecordHash: hashValid, signatures: signaturesValid },
   };
 }
 
@@ -173,23 +144,14 @@ function isAtOrAfterCutover(createdAt, hybridRequiredFrom) {
   return !Number.isNaN(created) && created >= parseTimestamp(hybridRequiredFrom);
 }
 
-function verifyLegacySignature(signature, message, context, errors) {
-  if (!isSignatureEntry(signature)) {
-    errors.push("signature is missing or malformed.");
-    return false;
-  }
-
-  return verifyEntry(signature, message, context, errors);
-}
-
-function verifyHybridSignatures(entries, message, context, errors) {
+function verifyEnvelope(entries, message, context, errors) {
   if (!Array.isArray(entries) || !entries.every(isSignatureEntry)) {
     errors.push("malformed signatures: expected an array of entries with string algorithm, keyId and signature.");
     return false;
   }
 
-  if (entries.length < 2) {
-    errors.push(`signatures array has ${entries.length} entr${entries.length === 1 ? "y" : "ies"}, need at least 2 for a hybrid record.`);
+  if (entries.length < 1 || entries.length > 2) {
+    errors.push(`signatures array has ${entries.length} entries, need one or two.`);
     return false;
   }
 
@@ -210,10 +172,8 @@ function verifyHybridSignatures(entries, message, context, errors) {
   return allValid;
 }
 
-// Accepts { algorithm, keyId, signature } entries. The legacy `signature` field
-// uses `value` for the same three parts, so that is accepted too.
+// Accepts { algorithm, keyId, signature } entries.
 function verifyEntry(entry, message, context, errors) {
-  const signatureText = entry.signature ?? entry.value;
   const algorithm = ALGORITHMS[entry.algorithm];
 
   if (!algorithm) {
@@ -267,7 +227,7 @@ function verifyEntry(entry, message, context, errors) {
     return false;
   }
 
-  const sigBytes = Buffer.from(signatureText, "base64");
+  const sigBytes = Buffer.from(entry.signature, "base64");
 
   const rawValid = safeVerify(message, sigBytes, publicKey);
 
@@ -334,7 +294,7 @@ function isSignatureEntry(value) {
     isObject(value) &&
     typeof value.algorithm === "string" &&
     typeof value.keyId === "string" &&
-    (typeof value.signature === "string" || typeof value.value === "string")
+    typeof value.signature === "string"
   );
 }
 

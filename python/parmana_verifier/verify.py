@@ -1,29 +1,26 @@
-"""Offline verification of an Execution Trust Record.
+"""Offline verification of an Execution Trust Record (schema version 3 only, decision D24).
 
 Mirrors src/verify.mjs. Checks run on the record alone:
   1. trustRecordHash equals the SHA-256 (hex) of the canonical record fields.
-  2. signature is a valid signature over those canonical bytes, made by a
-     trusted key named by signature.keyId (see trust.py for the trust rules).
-  3. If signatures is present, it is a hybrid envelope: at least two entries,
-     no repeated algorithm, and every entry verifies over the message for its
-     schemaVersion (default 2). A record with schemaVersion 3 must carry one.
-  4. If a cutover is given (hybrid_required_from, from the trust file), a record
-     created at or after it must pass check 3.
+  2. signatures is a list of one or two entries, each for a different algorithm.
+     Every entry is a valid signature over the whole record, made by a trusted
+     key named by its keyId (see trust.py for the trust rules). A single valid
+     entry is accepted.
+  3. If a cutover is given (hybrid_required_from, from the trust file), a record
+     created at or after it must carry both entries (ADR-0016).
 
-Schema versions:
-  2  the message is the canonical fields plus schemaVersion.
-  3  the message is every top-level field except signature, signatures,
-     schemaVersion, verifications and receipts, plus schemaVersion.
+Schema version 3 signs every top-level field except signatures, schemaVersion,
+verifications and receipts, plus the schema version itself. There is no legacy
+signature, and schema versions 2 and unversioned records are refused.
 
 Supported algorithms:
   ed25519     Ed25519 keys. Messages over 4096 bytes may be signed as a
               commitment: the prefix below followed by the SHA-512 digest of
-              the canonical bytes. A raw signature is also accepted. A
-              commitment over a small message is rejected.
+              the message. A raw signature is also accepted. A commitment over
+              a small message is rejected.
   dilithium3  ML-DSA-65 keys, verified over the same message as the ed25519
               entry. There is no commitment form. Needs cryptography 48.0.0 or
-              later. A hybrid record still needs both entries to verify, so
-              one valid part is never enough.
+              later.
 
 The verifier reads no environment variables and private keys, and makes no
 network calls.
@@ -33,12 +30,11 @@ import base64
 import binascii
 import hashlib
 import json
-from dataclasses import dataclass
 
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PublicKey
-from cryptography.hazmat.primitives import serialization
 
 from .canonical import canonical_bytes
 from .timestamps import parse_timestamp
@@ -46,11 +42,12 @@ from .trust import fingerprint_of_key
 
 RAW_MESSAGE_LIMIT_BYTES = 4096
 COMMITMENT_PREFIX = b"PARMANA-ED25519-LARGE-MESSAGE-V1\x00"
-DEFAULT_SCHEMA_VERSION = 2
 WHOLE_RECORD_SCHEMA_VERSION = 3
-SUPPORTED_SCHEMA_VERSIONS = (2, 3)
 
-LEGACY_FIELDS = ("trustRecordId", "businessTransactionId", "transaction", "authorization", "overrides", "executions", "createdAt")
+# The fields covered by trustRecordHash.
+HASH_FIELDS = ("trustRecordId", "businessTransactionId", "transaction", "authorization", "overrides", "executions", "createdAt")
+# Top-level fields that a version 3 message does not cover. "signature" is listed so the exclusion
+# matches parmana-core, which once carried that field.
 WHOLE_RECORD_EXCLUDED_FIELDS = ("signature", "signatures", "schemaVersion", "verifications", "receipts")
 
 ALGORITHMS = {
@@ -59,106 +56,77 @@ ALGORITHMS = {
 }
 
 
-@dataclass
 class _Context:
-    trust_keys: dict
-    created_at: object
+    def __init__(self, trust_keys, created_at):
+        self.trust_keys = trust_keys
+        self.created_at = created_at
 
 
 def canonical_trust_record(record):
-    """The fields covered by trustRecordHash and the legacy signature."""
-    # A field the record does not have is left out, as JSON.stringify leaves out
-    # undefined values in the JavaScript verifier.
-    return {key: record[key] for key in LEGACY_FIELDS if key in record}
+    """The fields covered by trustRecordHash."""
+    # A field the record does not have is left out, as JSON.stringify leaves out undefined values in the JavaScript verifier.
+    return {key: record[key] for key in HASH_FIELDS if key in record}
 
 
-def hybrid_message(record, schema_version):
-    """The message a hybrid envelope of the given schema version signs."""
-    if schema_version == WHOLE_RECORD_SCHEMA_VERSION:
-        covered = {key: value for key, value in record.items() if key not in WHOLE_RECORD_EXCLUDED_FIELDS}
-        covered["schemaVersion"] = schema_version
-        return canonical_bytes(covered)
-
-    return canonical_bytes({**canonical_trust_record(record), "schemaVersion": schema_version})
+def hybrid_message(record):
+    """The message the signatures array covers: every top-level field except the excluded ones, plus schemaVersion 3."""
+    covered = {key: value for key, value in record.items() if key not in WHOLE_RECORD_EXCLUDED_FIELDS}
+    covered["schemaVersion"] = WHOLE_RECORD_SCHEMA_VERSION
+    return canonical_bytes(covered)
 
 
-def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None, allow_legacy_only=False, allow_legacy_v2=False):
+def verify_execution_trust_record(record, trust_keys, hybrid_required_from=None):
     """Verify a record against a trust set (a dict keyId -> TrustEntry).
 
-    Returns a dict with valid, coverage ("full" or "legacy"), errors and checks,
-    the same shape as the Node verifier's result.
+    hybrid_required_from is the optional cutover from the trust file. Returns a dict with valid, errors and
+    checks, the same shape as the Node verifier's result.
     """
     errors = []
 
     if not isinstance(record, dict):
-        return {"valid": False, "coverage": "legacy", "errors": ["record must be a JSON object"], "checks": {}}
+        return {"valid": False, "errors": ["record must be a JSON object"], "checks": {}}
 
-    # Schema version 2 signs only seven top-level fields. A record with no
-    # schemaVersion is treated as version 2. Both are refused unless the caller
-    # opts in with allow_legacy_v2, so a partially covered record is never
-    # accepted by default.
-    declared_version = record.get("schemaVersion", DEFAULT_SCHEMA_VERSION)
-    if declared_version == 2 and not allow_legacy_v2:
+    # Schema version 3 only (decision D24). Any other version, or none, is refused before any signature is read.
+    if record.get("schemaVersion") != WHOLE_RECORD_SCHEMA_VERSION:
         return {
             "valid": False,
-            "coverage": "legacy",
             "errors": [
-                "schemaVersion 2 (or no schemaVersion) covers only seven top-level fields and is refused by default: set allow_legacy_v2 to accept it, or re-issue the record as schemaVersion 3."
+                f"unsupported schemaVersion {record.get('schemaVersion')!r}: only schemaVersion 3 is accepted (decision D24)."
             ],
             "checks": {},
         }
 
-    legacy_message = canonical_bytes(canonical_trust_record(record))
-    expected_hash = hashlib.sha256(legacy_message).hexdigest()
+    expected_hash = hashlib.sha256(canonical_bytes(canonical_trust_record(record))).hexdigest()
     hash_valid = expected_hash == record.get("trustRecordHash")
 
     if not hash_valid:
         errors.append(f"trustRecordHash mismatch: expected {expected_hash}.")
 
-    context = _Context(trust_keys=trust_keys, created_at=record.get("createdAt"))
+    context = _Context(trust_keys, record.get("createdAt"))
+    signatures_valid = False
 
-    signature_valid = _verify_legacy_signature(record.get("signature"), legacy_message, context, errors)
-
-    checks = {"trustRecordHash": hash_valid, "signature": signature_valid}
-
-    schema_version = record.get("schemaVersion")
-    if schema_version is None:
-        schema_version = DEFAULT_SCHEMA_VERSION
-    has_envelope = record.get("signatures") is not None
-
-    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
-        errors.append(f"unsupported schemaVersion {schema_version}: expected 2 or 3.")
-        checks["hybridSignatures"] = False
-    elif has_envelope:
-        checks["hybridSignatures"] = _verify_hybrid_signatures(
-            record["signatures"], hybrid_message(record, schema_version), context, errors
-        )
-    elif schema_version == WHOLE_RECORD_SCHEMA_VERSION:
+    if record.get("signatures") is None:
         errors.append("schemaVersion 3 record has no signatures array: a whole-record signature is required.")
-        checks["hybridSignatures"] = False
+    else:
+        signatures_valid = _verify_envelope(record["signatures"], hybrid_message(record), context, errors)
 
-    # A record with no hybrid envelope is accepted only when the caller allows
-    # it: a cutover is given and the record predates it, or no cutover is given
-    # and allow_legacy_only is True. Otherwise it is refused.
-    cutover_given = hybrid_required_from is not None
-    predates_cutover = cutover_given and not _is_at_or_after_cutover(record.get("createdAt"), hybrid_required_from)
-    legacy_only_allowed = predates_cutover if cutover_given else allow_legacy_only is True
+    # From the cutover on, both entries are required (ADR-0016).
+    if (
+        hybrid_required_from is not None
+        and _is_at_or_after_cutover(record.get("createdAt"), hybrid_required_from)
+        and signatures_valid
+        and len(record["signatures"]) != 2
+    ):
+        errors.append(
+            f"record created at or after hybridRequiredFrom ({hybrid_required_from}) must carry both hybrid signatures."
+        )
+        signatures_valid = False
 
-    # A record created at or after the cutover needs a valid envelope, whether it
-    # is missing or present but invalid.
-    at_or_after_cutover = cutover_given and not predates_cutover
-    if at_or_after_cutover and checks.get("hybridSignatures") is not True:
-        errors.append(f"record created at or after hybridRequiredFrom ({hybrid_required_from}) has no valid hybrid envelope.")
-    elif "hybridSignatures" not in checks and not legacy_only_allowed:
-        errors.append("record has no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly to accept a legacy-only record.")
-
-    envelope_ok = legacy_only_allowed if "hybridSignatures" not in checks else checks["hybridSignatures"] is True
-
-    coverage = "full" if schema_version == WHOLE_RECORD_SCHEMA_VERSION and checks.get("hybridSignatures") is True else "legacy"
-
-    valid = hash_valid and signature_valid and envelope_ok
-
-    return {"valid": bool(valid), "coverage": coverage, "errors": errors, "checks": checks}
+    return {
+        "valid": bool(hash_valid and signatures_valid),
+        "errors": errors,
+        "checks": {"trustRecordHash": hash_valid, "signatures": signatures_valid},
+    }
 
 
 def _is_at_or_after_cutover(created_at, hybrid_required_from):
@@ -171,22 +139,13 @@ def _is_at_or_after_cutover(created_at, hybrid_required_from):
     return created is not None and cutover is not None and created >= cutover
 
 
-def _verify_legacy_signature(signature, message, context, errors):
-    if not _is_signature_entry(signature):
-        errors.append("signature is missing or malformed.")
-        return False
-
-    return _verify_entry(signature, message, context, errors)
-
-
-def _verify_hybrid_signatures(entries, message, context, errors):
+def _verify_envelope(entries, message, context, errors):
     if not isinstance(entries, list) or not all(_is_signature_entry(entry) for entry in entries):
         errors.append("malformed signatures: expected an array of entries with string algorithm, keyId and signature.")
         return False
 
-    if len(entries) < 2:
-        noun = "entry" if len(entries) == 1 else "entries"
-        errors.append(f"signatures array has {len(entries)} {noun}, need at least 2 for a hybrid record.")
+    if len(entries) < 1 or len(entries) > 2:
+        errors.append(f"signatures array has {len(entries)} entries, need one or two.")
         return False
 
     seen = set()
@@ -205,8 +164,7 @@ def _verify_hybrid_signatures(entries, message, context, errors):
 
 
 def _verify_entry(entry, message, context, errors):
-    # The legacy signature field uses "value" for the same three parts.
-    signature_text = entry.get("signature") if isinstance(entry.get("signature"), str) else entry.get("value")
+    signature_text = entry["signature"]
     algorithm_name = entry["algorithm"]
     key_id = entry["keyId"]
 
@@ -248,7 +206,7 @@ def _verify_entry(entry, message, context, errors):
         return False
 
     try:
-        signature = base64.b64decode(signature_text or "", validate=False)
+        signature = base64.b64decode(signature_text, validate=False)
     except (binascii.Error, ValueError):
         signature = b""
 
@@ -296,7 +254,7 @@ def _is_signature_entry(value):
         isinstance(value, dict)
         and isinstance(value.get("algorithm"), str)
         and isinstance(value.get("keyId"), str)
-        and (isinstance(value.get("signature"), str) or isinstance(value.get("value"), str))
+        and isinstance(value.get("signature"), str)
     )
 
 

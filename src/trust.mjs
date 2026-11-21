@@ -30,9 +30,14 @@ export function parseTrustSet(document) {
 
 // Parses a trust-set document into { keys, hybridRequiredFrom }. keys is the
 // Map that parseTrustSet returns. hybridRequiredFrom is the optional cutover:
-// a record created at or after it must carry a valid hybrid envelope. It is
-// null when the document does not set one. It must be an ISO-8601 UTC
-// timestamp ending in "Z", so that it means the same time everywhere.
+// a record created at or after it must carry both signatures (two entries in
+// the signatures array). It is null when the document does not set one. It
+// must be an ISO-8601 UTC timestamp ending in "Z", so that it means the same
+// time everywhere.
+//
+// The legacy flags allowLegacyOnly and allowLegacyV2 were removed under decision
+// D24 (trust records are schema version 3 only). A trust file that still sets
+// them is refused, so an old file cannot silently change what is accepted.
 export function parseTrustPolicy(document) {
   if (document === null || typeof document !== "object" || !Array.isArray(document.keys)) {
     throw new Error('trust set must be an object with a "keys" array');
@@ -48,21 +53,13 @@ export function parseTrustPolicy(document) {
     hybridRequiredFrom = document.hybridRequiredFrom;
   }
 
-  // Off by default: a record with no hybrid envelope is refused unless the
-  // trust file explicitly allows legacy-only records.
-  if (document.allowLegacyOnly !== undefined && typeof document.allowLegacyOnly !== "boolean") {
-    throw new Error('allowLegacyOnly must be true or false');
+  for (const removed of ["allowLegacyOnly", "allowLegacyV2"]) {
+    if (Object.prototype.hasOwnProperty.call(document, removed)) {
+      throw new Error(
+        `${removed} is no longer supported: trust records are schema version 3 only (decision D24). Remove this field from the trust file.`,
+      );
+    }
   }
-
-  const allowLegacyOnly = document.allowLegacyOnly === true;
-
-  // Off by default: a schema version 2 record (or one with no schemaVersion)
-  // is refused unless the trust file explicitly allows it.
-  if (document.allowLegacyV2 !== undefined && typeof document.allowLegacyV2 !== "boolean") {
-    throw new Error('allowLegacyV2 must be true or false');
-  }
-
-  const allowLegacyV2 = document.allowLegacyV2 === true;
 
   const trustKeys = new Map();
 
@@ -117,5 +114,5 @@ export function parseTrustPolicy(document) {
     });
   }
 
-  return { keys: trustKeys, hybridRequiredFrom, allowLegacyOnly, allowLegacyV2 };
+  return { keys: trustKeys, hybridRequiredFrom };
 }

@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 import { canonicalBytes } from "../src/canonical.mjs";
 import { verifyExecutionTrustRecord } from "../src/verify.mjs";
 import { parseTrustPolicy } from "../src/trust.mjs";
-import { keyFingerprint } from "../src/trust.mjs";
 import { makeKeyPair, makeRecord, trustEntry, trustSet } from "./helpers.mjs";
 
 const BIN = fileURLToPath(new URL("../bin/parmana-verify.mjs", import.meta.url));
@@ -17,44 +16,44 @@ const BIN = fileURLToPath(new URL("../bin/parmana-verify.mjs", import.meta.url))
 test("a correctly hashed and signed record verifies", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true, allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
-  assert.deepEqual(result.checks, { trustRecordHash: true, signature: true });
+  assert.deepEqual(result.checks, { trustRecordHash: true, signatures: true });
 });
 
 test("changing a signed field breaks the hash and the signature", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
   record.transaction.amount = 1000000;
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
   assert.equal(result.checks.trustRecordHash, false);
-  assert.equal(result.checks.signature, false);
+  assert.equal(result.checks.signatures, false);
 });
 
 test("a signature from a different key is rejected", () => {
   const signer = makeKeyPair();
   const other = makeKeyPair();
   const record = makeRecord({}, signer);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", other)), { allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", other)));
   assert.equal(result.valid, false);
-  assert.equal(result.checks.signature, false);
+  assert.equal(result.checks.signatures, false);
 });
 
 test("an unknown keyId is reported, not treated as valid", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key, "missing-key");
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /no trusted key for keyId "missing-key"/);
 });
 
-test("an algorithm other than ed25519 is rejected", () => {
+test("an algorithm other than the supported ones is rejected", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
-  record.signature.algorithm = "rsa";
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  record.signatures[0].algorithm = "rsa";
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /unsupported algorithm: rsa/);
 });
@@ -64,9 +63,8 @@ test("a non-Ed25519 public key is rejected", () => {
   const record = makeRecord({}, key);
   const rsa = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const pem = rsa.publicKey.export({ type: "spki", format: "pem" });
-  const rsaKey = { publicPem: pem };
-  const trust = trustSet(trustEntry("test-key", "ed25519", rsaKey));
-  const result = verifyExecutionTrustRecord(record, trust, { allowLegacyV2: true });
+  const trust = trustSet(trustEntry("test-key", "ed25519", { publicPem: pem }));
+  const result = verifyExecutionTrustRecord(record, trust);
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /expected ed25519/);
 });
@@ -76,22 +74,22 @@ test("a record over 4096 bytes signed as a commitment verifies", () => {
   const big = "x".repeat(5000);
   const record = makeRecord({ transaction: { note: big } }, key, "test-key", "commitment");
   assert.ok(canonicalBytes(record).length > 4096);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true, allowLegacyV2: true });
-  assert.equal(result.valid, true);
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  assert.equal(result.valid, true, result.errors.join("; "));
 });
 
 test("a record over 4096 bytes signed raw verifies", () => {
   const key = makeKeyPair();
   const big = "x".repeat(5000);
   const record = makeRecord({ transaction: { note: big } }, key, "test-key", "raw");
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true, allowLegacyV2: true });
-  assert.equal(result.valid, true);
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+  assert.equal(result.valid, true, result.errors.join("; "));
 });
 
 test("a commitment signature over a small record is rejected (no downgrade)", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key, "test-key", "commitment");
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
 });
 
@@ -109,17 +107,32 @@ test("injecting a __proto__ key into a signed record breaks verification", () =>
   tampered.transaction = JSON.parse(
     '{"__proto__":{"injected":true},' + JSON.stringify(tampered.transaction).slice(1),
   );
-  const result = verifyExecutionTrustRecord(tampered, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  const result = verifyExecutionTrustRecord(tampered, trustSet(trustEntry("test-key", "ed25519", key)));
   assert.equal(result.valid, false);
 });
 
-test("a record with signatures that is otherwise valid still needs its hybrid entries", () => {
+test("a record with no schemaVersion is refused, before any signature is read", () => {
   const key = makeKeyPair();
   const record = makeRecord({}, key);
-  record.signatures = [{ algorithm: "ed25519", keyId: "test-key", signature: record.signature.value }];
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
+  delete record.schemaVersion;
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+
   assert.equal(result.valid, false);
-  assert.equal(result.checks.hybridSignatures, false);
+  assert.match(result.errors[0], /only schemaVersion 3/);
+});
+
+test("an explicit schemaVersion 2 record is refused (D24)", () => {
+  const key = makeKeyPair();
+  const record = makeRecord({ schemaVersion: 2 }, key);
+  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)));
+
+  assert.equal(result.valid, false);
+  assert.match(result.errors[0], /only schemaVersion 3/);
+});
+
+test("a trust file that sets a removed legacy flag is refused, not silently honoured", () => {
+  assert.throws(() => parseTrustPolicy({ keys: [], allowLegacyV2: true }), /allowLegacyV2 is no longer supported/);
+  assert.throws(() => parseTrustPolicy({ keys: [], allowLegacyOnly: true }), /allowLegacyOnly is no longer supported/);
 });
 
 function runCli(args) {
@@ -132,7 +145,7 @@ test("CLI exits 0 for a valid record", () => {
   const proof = join(dir, "proof.json");
   const keys = join(dir, "keys.json");
   writeFileSync(proof, JSON.stringify(makeRecord({}, key)));
-  writeFileSync(keys, JSON.stringify({ keys: [trustEntry("test-key", "ed25519", key)], allowLegacyOnly: true, allowLegacyV2: true }));
+  writeFileSync(keys, JSON.stringify({ keys: [trustEntry("test-key", "ed25519", key)] }));
   const run = runCli([proof, keys]);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(run.stdout).valid, true);
@@ -150,59 +163,15 @@ test("CLI exits 1 for a tampered record", () => {
   assert.equal(runCli([proof, keys]).status, 1);
 });
 
-test("CLI exits 2 on usage and read errors", () => {
+test("CLI exits 2 on usage and read errors, and on a trust file with a removed flag", () => {
   assert.equal(runCli([]).status, 2);
   assert.equal(runCli(["/nonexistent/proof.json", "/nonexistent/keys.json"]).status, 2);
-});
 
-
-test("a legacy-only record is refused by default, with no cutover and no opt-in", () => {
+  const dir = mkdtempSync(join(tmpdir(), "parmana-verify-"));
   const key = makeKeyPair();
-  const result = verifyExecutionTrustRecord(makeRecord({}, key), trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyV2: true });
-  assert.equal(result.valid, false);
-  assert.match(result.errors.join(" "), /no hybrid envelope: set hybridRequiredFrom or allowLegacyOnly/);
-});
-
-test("a legacy-only record created after the cutover is refused even with allowLegacyOnly", () => {
-  const key = makeKeyPair();
-  const record = makeRecord({ createdAt: "2026-06-01T00:00:00.000Z" }, key);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), {
-    hybridRequiredFrom: "2026-03-01T00:00:00.000Z",
-    allowLegacyOnly: true, allowLegacyV2: true });
-  assert.equal(result.valid, false);
-  assert.match(result.errors.join(" "), /hybridRequiredFrom/);
-});
-
-test("a record with no schemaVersion is refused by default", () => {
-  const key = makeKeyPair();
-  const record = makeRecord({}, key);
-  delete record.schemaVersion;
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true });
-
-  assert.equal(result.valid, false);
-  assert.match(result.errors[0], /refused by default/);
-});
-
-test("a record with no schemaVersion verifies only with allowLegacyV2", () => {
-  const key = makeKeyPair();
-  const record = makeRecord({}, key);
-  delete record.schemaVersion;
-  const keys = trustSet(trustEntry("test-key", "ed25519", key));
-  const result = verifyExecutionTrustRecord(record, keys, { allowLegacyOnly: true, allowLegacyV2: true });
-
-  assert.equal(result.valid, true);
-  assert.equal(result.coverage, "legacy");
-});
-
-test("an explicit schemaVersion 2 record is refused by default", () => {
-  const key = makeKeyPair();
-  const record = makeRecord({ schemaVersion: 2 }, key);
-  const result = verifyExecutionTrustRecord(record, trustSet(trustEntry("test-key", "ed25519", key)), { allowLegacyOnly: true });
-
-  assert.equal(result.valid, false);
-  assert.match(result.errors[0], /refused by default/);
-});
-
-test("the trust file rejects a non-boolean allowLegacyV2", () => {
-  assert.throws(() => parseTrustPolicy({ keys: [], allowLegacyV2: "yes" }), /allowLegacyV2 must be true or false/);
+  const proof = join(dir, "proof.json");
+  const keys = join(dir, "keys.json");
+  writeFileSync(proof, JSON.stringify(makeRecord({}, key)));
+  writeFileSync(keys, JSON.stringify({ keys: [trustEntry("test-key", "ed25519", key)], allowLegacyV2: true }));
+  assert.equal(runCli([proof, keys]).status, 2);
 });

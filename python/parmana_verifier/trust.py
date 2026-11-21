@@ -37,8 +37,6 @@ class TrustEntry:
 class TrustPolicy:
     keys: dict = field(default_factory=dict)
     hybrid_required_from: Optional[str] = None
-    allow_legacy_only: bool = False
-    allow_legacy_v2: bool = False
 
 
 def key_fingerprint(public_key_pem):
@@ -67,15 +65,15 @@ def parse_trust_policy(document):
             raise ValueError('hybridRequiredFrom must be an ISO-8601 UTC timestamp ending in "Z"')
         hybrid_required_from = cutover
 
-    # Off by default: a record with no hybrid envelope is refused unless the
-    # trust file explicitly allows legacy-only records.
-    allow_legacy_v2 = document.get("allowLegacyV2", False)
-    if not isinstance(allow_legacy_v2, bool):
-        raise ValueError("allowLegacyV2 must be true or false")
-
-    allow_legacy_only = document.get("allowLegacyOnly", False)
-    if not isinstance(allow_legacy_only, bool):
-        raise ValueError("allowLegacyOnly must be true or false")
+    # The legacy flags allowLegacyOnly and allowLegacyV2 were removed under decision D24 (trust records are
+    # schema version 3 only). A trust file that still sets them is refused, so an old file cannot silently
+    # change what is accepted.
+    for removed in ("allowLegacyOnly", "allowLegacyV2"):
+        if removed in document:
+            raise ValueError(
+                f"{removed} is no longer supported: trust records are schema version 3 only (decision D24). "
+                "Remove this field from the trust file."
+            )
 
     keys = {}
 
@@ -125,4 +123,4 @@ def parse_trust_policy(document):
             compromised=compromised,
         )
 
-    return TrustPolicy(keys=keys, hybrid_required_from=hybrid_required_from, allow_legacy_only=allow_legacy_only, allow_legacy_v2=allow_legacy_v2)
+    return TrustPolicy(keys=keys, hybrid_required_from=hybrid_required_from)
