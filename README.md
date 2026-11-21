@@ -170,7 +170,7 @@ npm test
 
 Run the tests on Node 24. On Node 22 or any runtime without ML-DSA-65, the hybrid tests are skipped. Test keys are generated at run time, labelled "TEST KEY - NOT FOR PRODUCTION", and never written to disk.
 
-The suite covers the whole-record hash and signatures, single mode and hybrid signatures, the cutover, the trust rules, the removed legacy flags, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
+The suite covers the whole-record hash and signatures, single mode and hybrid signatures, the cutover, the trust rules, the removed legacy flags, the execution correspondence report, the quick start, the test vectors, and the command-line exit codes. Each area has its own file under `test/`.
 
 Records from parmana-core are tested in `test/parmana-core-records.test.mjs` and `python/tests/test_parmana_core_records.py`. They use `test/vectors/parmana-core-generated/cases.json`: 16 cases over two records generated with parmana-core's signing code (hybrid and single mode, decision D24), with tampered copies and trust-file edits. Both verifiers must agree on every case. The quick-start record in `python/README.md` is tested in `test/quickstart.test.mjs` and `python/tests/test_quickstart.py`.
 
