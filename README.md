@@ -205,7 +205,7 @@ Every report is listed once, here. Start with the question you have.
 
 **Releases**
 
-- **Published versions:** `@parmana/verifier` 2.0.3 on npm and `parmana-verifier` 2.0.3 on PyPI, published 2026-11-15 from commit `4068278`.
+- **Current version:** `@parmana/verifier` 5.0.0 on npm (published 2026-11-21) and `parmana-verifier` 5.0.0 on PyPI. The previous release, 2.0.3, was published 2026-11-15 from commit `4068278`.
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md) lists each change to the record formats and the command-line interface.
 - **Release process:** [RELEASING.md](RELEASING.md) describes how a release is built, checked and published.
 
@@ -223,7 +223,7 @@ New posts are published regularly, so check the blog for updates.
 
 ## Status
 
-This is version 2.0.3, published 2026-11-15 on npm and PyPI, released with the 2.0.3 SDK packages. Each change to the record formats or the command-line interface is listed in [CHANGELOG.md](CHANGELOG.md).
+This is version 5.0.0, published 2026-11-21 on npm and PyPI. Each change to the record formats or the command-line interface is listed in [CHANGELOG.md](CHANGELOG.md).
 
 On 2026-10-29, on Node 24.22.1 and Windows PowerShell, the two quick-start commands above returned the output shown, with exit codes `0` and `1`. The release process builds the packages, records their hashes, and attaches build provenance. See [RELEASING.md](RELEASING.md) for the steps.
 

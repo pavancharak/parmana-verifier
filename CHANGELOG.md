@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-11-21
+
 - **Breaking (decision D24): schema version 3 only.** Both verifiers accept only `schemaVersion` 3. Records with `schemaVersion` 2, or with none, are refused before any signature is read. The legacy top-level `signature` field is no longer read, and the `value` name of a signature entry is no longer accepted. No customer or vendor received an earlier record, so there is no migration path.
 - **Breaking: the `signatures` array is the whole-record signature.** It has one or two entries. Single mode uses one entry; hybrid uses two (Ed25519 and ML-DSA-65). A two-entry record is never accepted on one valid entry. `hybridRequiredFrom` (ADR-0016) requires both entries at or after the cutover, and one valid entry before it.
 - **Breaking: removed trust-file flags.** `allowLegacyOnly` and `allowLegacyV2` are refused with exit `2`. Remove them from trust files.
